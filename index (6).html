@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Honig bestellen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+<style>
+:root { --y: #FFE337; --b: #822045; --card: #FFF6BC; --honey: #FFE337; }
+* { box-sizing: border-box; }
+body { margin: 0; padding-bottom: 140px; background: var(--y); color: var(--b); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+h1, h2, h3, .lob { font-family: Lobster, cursive; font-weight: 400; margin: 0; }
+
+/* Hero */
+.hero { background: var(--b) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='90' viewBox='0 0 52 90'%3E%3Cg fill='none' stroke='%23FFE337' stroke-opacity='.14' stroke-width='2'%3E%3Cpolygon points='26,0 52,15 52,45 26,60 0,45 0,15'/%3E%3Cpolygon points='0,45 26,60 26,90 0,105 -26,90 -26,60'/%3E%3Cpolygon points='52,45 78,60 78,90 52,105 26,90 26,60'/%3E%3C/g%3E%3C/svg%3E"); color: var(--y); padding: 52px 20px 44px; text-align: center; border-bottom: 6px solid #5c1530; }
+.hero h1 { font-size: clamp(3.4rem, 15vw, 6rem); line-height: 1; text-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.hero p { margin: 14px auto 0; max-width: 46ch; font-size: 1.1rem; }
+.hint { width: fit-content; max-width: 100%; margin: 22px auto 0; padding: 12px 22px; background: var(--b); border: 2px solid var(--y); border-radius: 18px; font-weight: 600; font-size: 1rem; }
+.hero-wrap { margin-bottom: 0; }
+main { max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
+
+/* Steps */
+.step { margin-bottom: 34px; }
+.step > h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 2rem; line-height: 1.1; }
+.n { flex: none; display: grid; place-items: center; width: 42px; height: 46px; background: var(--b); color: var(--y); font: 1.5rem Lobster, cursive; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+
+/* Sorten */
+.card { background: var(--card); border: 2px solid var(--b); border-radius: 24px; padding: 16px 16px 18px; margin-bottom: 16px; box-shadow: 0 5px 0 var(--b); }
+.chead { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
+.chead h3 { font-size: 1.8rem; line-height: 1.1; }
+.chip { padding: 1px 12px; border: 2px solid var(--b); border-radius: 999px; font-size: .85rem; font-weight: 600; }
+.sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 12px 12px; border: 2px solid var(--b); border-radius: 18px; background: #fff; transition: background .15s, color .15s; }
+.tile.on { background: var(--b); color: var(--y); --line: var(--y); }
+.jar { display: block; height: auto; }
+.tl { display: flex; flex-direction: column; line-height: 1.1; }
+.size { font: 1.45rem Lobster, cursive; }
+.price { font-size: .85rem; margin-top: 2px; }
+.ctl { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+.ctl button { width: 38px; height: 38px; border-radius: 50%; border: 2px solid currentColor; background: transparent; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.ctl button:hover { background: var(--b); color: var(--y); border-color: var(--b); }
+.tile.on .ctl button:hover { background: var(--y); color: var(--b); border-color: var(--y); }
+.ctl output { font: 1.8rem Lobster, cursive; }
+
+/* Abholung + Angaben */
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.opt { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 2px solid var(--b); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--b); cursor: pointer; }
+.opt:has(input:checked) { background: var(--b); color: var(--y); }
+.opt input { margin-top: 5px; accent-color: var(--y); }
+.opt b { display: block; font-size: 1.05rem; }
+.opt small { font-size: .9rem; }
+label.f { display: block; font-weight: 600; margin: 16px 0 5px; }
+input[type=text], input[type=email], input[type=date], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--b); border-radius: 14px; background: #fff; color: var(--b); font: inherit; }
+textarea { min-height: 92px; resize: vertical; }
+:focus-visible { outline: 3px solid var(--b); outline-offset: 2px; }
+
+.opts { display: grid; gap: 12px; }
+.two { display: grid; gap: 0 16px; }
+.two label.f { margin-top: 0; }
+@media (min-width: 640px) {
+  .card.prod { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .card.prod .chead { flex: 1; margin: 0; }
+  .card.prod .sizes { width: 370px; flex: none; }
+  .opts { grid-template-columns: 1fr 1fr; }
+  .two { grid-template-columns: 1fr 1fr; }
+  .two label.f { margin-top: 16px; }
+}
+
+/* Leiste */
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--b); color: var(--y); padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 0 rgba(0,0,0,.18); }
+.bar :focus-visible { outline-color: var(--y); }
+.bar-in { max-width: 540px; margin: 0 auto; display: grid; gap: 8px; }
+#status { margin: 0; font-weight: 600; }
+#status:empty { display: none; }
+.bar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sum { font-weight: 600; line-height: 1.25; }
+.send, .again { font: 1.45rem Lobster, cursive; padding: 9px 26px; border-radius: 999px; border: 0; background: var(--y); color: var(--b); cursor: pointer; }
+.send:disabled { opacity: .6; cursor: wait; }
+.again { background: var(--b); color: var(--y); margin-top: 16px; }
+
+/* Danke */
+#done { text-align: center; padding: 28px 22px 30px; }
+#done h2 { font-size: 2.6rem; margin: 8px 0 10px; }
+#done p { margin: 0 auto; max-width: 36ch; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="jar" viewBox="0 0 64 80">
+    <rect x="14" y="3" width="36" height="13" rx="4" style="fill:var(--line,#822045)"/>
+    <path d="M16 16h32v6c6 4 8 10 8 18v24a10 10 0 0 1-10 10H18a10 10 0 0 1-10-10V40c0-8 2-14 8-18z" style="fill:var(--honey,#FFE337);stroke:var(--line,#822045)" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="16" y="38" width="32" height="24" rx="5" fill="#fff" fill-opacity=".9" style="stroke:var(--line,#822045)" stroke-width="2"/>
+    <path d="M32 42l7 4v8l-7 4-7-4v-8z" style="fill:var(--line,#822045)"/>
+    <path d="M13 36v22" stroke="#fff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<div class="hero-wrap">
+  <header class="hero">
+    <h1>Honig bestellen</h1>
+    <p>Willkommen! Hier füllst du alle wichtigen Infos zu deiner Bestellung aus. Bitte alles gründlich durchlesen.</p>
+    <div class="hint">Bestellungen, die vor 20 Uhr abgeschickt werden, sind meistens am nächsten Tag verfügbar.</div>
+  </header>
+</div>
+
+<main>
+  <form id="f" onsubmit="return false" novalidate>
+    <section class="step">
+      <h2><span class="n">1</span>Sorten wählen</h2>
+      <div id="products"></div>
+    </section>
+
+    <section class="step">
+      <h2><span class="n">2</span>Abholung</h2>
+      <fieldset id="pickup-fs">
+        <legend style="position:absolute;left:-9999px">Persönlich abholen oder Abholschrank?</legend>
+        <div class="opts"><label class="opt"><input type="radio" name="pickup" value="Persönlich abholen (Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr)"><span><b>Persönlich abholen</b><small>Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr</small></span></label>
+        <label class="opt"><input type="radio" name="pickup" value="Abholschrank (24/7)"><span><b>Abholschrank</b><small>24/7, sofern jemand zum Auffüllen da ist</small></span></label></div>
+      </fieldset>
+      <label class="f" for="date">Wunschtermin zum Abholen (optional)</label>
+      <input id="date" type="date">
+    </section>
+
+    <section class="step">
+      <h2><span class="n">3</span>Deine Angaben</h2>
+      <div class="two">
+        <div><label class="f" for="name">Vorname</label><input id="name" type="text" autocomplete="given-name"></div>
+        <div><label class="f" for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="email"></div>
+      </div>
+      <label class="f" for="msg">Sonstige Wünsche (optional)</label>
+      <textarea id="msg"></textarea>
+      <input type="text" id="hp" tabindex="-1" autocomplete="off" style="display:none" aria-hidden="true">
+    </section>
+  </form>
+
+  <section class="card" id="done" hidden>
+    <svg class="jar" width="84" viewBox="0 0 64 80" aria-hidden="true" style="margin:0 auto"><use href="#jar"/></svg>
+    <h2>Danke!</h2>
+    <p>Vielen Dank für deine Bestellung! Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist! Falls du deine Bestellung am Abholschrank abholst, ist eine Anleitung im Anhang.</p>
+    <button class="again" type="button" onclick="location.reload()">Neue Bestellung</button>
+  </section>
+</main>
+
+<div class="bar" id="bar">
+  <div class="bar-in">
+    <p id="status" role="status"></p>
+    <div class="bar-row">
+      <div class="sum" id="sum" aria-live="polite"></div>
+      <button class="send" id="send" type="button">Bestellung absenden</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Hier anpassen ===== */
+const TO = "landimkereidiezinger@gmail.com";
+// Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
+const PRODUCTS = [
+  { name: "Cremiger Honig",  note: "Sommer",   honey: "#FFF1A0", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#FFE337", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] },
+  { name: "Cremiger Honig",  note: "Frühling", honey: "#FFF1A0", sizes: [["cf250", "250 g", null], ["cf500", "500 g", null]] }
+];
+/* ========================= */
+
+const $ = id => document.getElementById(id);
+const val = id => $(id).value.trim();
+const eur = n => n.toFixed(2).replace(".", ",") + " €";
+const qty = {}, items = [];
+
+PRODUCTS.forEach(p => {
+  const g = document.createElement("article");
+  g.className = "card prod";
+  g.style.setProperty("--honey", p.honey);
+  g.innerHTML = '<div class="chead"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div><div class="sizes"></div>';
+  p.sizes.forEach(([id, size, price]) => {
+    const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
+    items.push({ id, label, price });
+    qty[id] = 0;
+    const w = parseInt(size) > 300 ? 46 : 36;
+    const t = document.createElement("div");
+    t.className = "tile";
+    t.id = "tile-" + id;
+    t.innerHTML =
+      '<svg class="jar" width="' + w + '" viewBox="0 0 64 80" aria-hidden="true"><use href="#jar"/></svg>' +
+      '<div class="tl"><span class="size">' + size + "</span>" + (price != null ? '<span class="price">' + eur(price) + "</span>" : "") + "</div>" +
+      '<div class="ctl">' +
+      '<button type="button" data-id="' + id + '" data-d="-1" aria-label="Eins weniger: ' + label + '">−</button>' +
+      '<output id="q-' + id + '">0</output>' +
+      '<button type="button" data-id="' + id + '" data-d="1" aria-label="Eins mehr: ' + label + '">+</button></div>';
+    g.querySelector(".sizes").appendChild(t);
+  });
+  $("products").appendChild(g);
+});
+
+$("products").addEventListener("click", e => {
+  const b = e.target.closest("button[data-id]");
+  if (!b) return;
+  const id = b.dataset.id;
+  qty[id] = Math.max(0, Math.min(20, qty[id] + Number(b.dataset.d)));
+  $("q-" + id).textContent = qty[id];
+  $("tile-" + id).classList.toggle("on", qty[id] > 0);
+  render();
+});
+
+const chosen = () => items.filter(i => qty[i.id] > 0);
+function total() {
+  const c = chosen();
+  return c.length && c.every(i => i.price != null) ? c.reduce((s, i) => s + i.price * qty[i.id], 0) : null;
+}
+function render() {
+  const n = chosen().reduce((s, i) => s + qty[i.id], 0), t = total();
+  $("sum").innerHTML = n ? n + (n === 1 ? " Glas" : " Gläser") + (t != null ? "<br>" + eur(t) : "") : "Noch nichts gewählt";
+}
+
+const fmtDate = v => { const [y, m, d] = v.split("-"); return d + "." + m + "." + y; };
+$("date").min = new Date().toLocaleDateString("sv-SE");
+
+function fail(msg, el) {
+  $("status").textContent = msg;
+  if (el) { el.scrollIntoView({ block: "center" }); if (el.focus) el.focus({ preventScroll: true }); }
+  return false;
+}
+function ready() {
+  if (!chosen().length) return fail("Wähl zuerst mindestens ein Glas aus.", $("products"));
+  if (!document.querySelector('input[name="pickup"]:checked')) return fail("Bitte wähl aus, wie du abholen willst.", $("pickup-fs"));
+  if (!val("name")) return fail("Bitte trag deinen Vornamen ein.", $("name"));
+  if (!val("email") || !$("email").checkValidity()) return fail("Bitte trag eine gültige E-Mail-Adresse ein.", $("email"));
+  $("status").textContent = "";
+  return true;
+}
+
+$("send").onclick = async () => {
+  if (!ready()) return;
+  const btn = $("send"), t = total();
+  btn.disabled = true; btn.textContent = "Wird gesendet …";
+  const body = { _subject: "Neue Honigbestellung von " + val("name"), _template: "table", _captcha: "false", _honey: $("hp").value, name: val("name"), email: val("email") };
+  chosen().forEach(i => { body[i.label] = qty[i.id] + "×"; });
+  if (t != null) body["Gesamt"] = eur(t);
+  body["Abholung"] = document.querySelector('input[name="pickup"]:checked').value;
+  if ($("date").value) body["Wunschtermin"] = fmtDate($("date").value);
+  if (val("msg")) body["Sonstige Wünsche"] = val("msg");
+  try {
+    const r = await fetch("https://formsubmit.co/ajax/" + TO, {
+      method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
+    $("f").hidden = true; $("bar").hidden = true;
+    $("done").hidden = false; window.scrollTo(0, 0);
+  } catch (err) {
+    $("status").textContent = "Das Senden hat nicht geklappt. Versuch es bitte nochmal oder schreib uns direkt an " + TO + ".";
+    btn.disabled = false; btn.textContent = "Bestellung absenden";
+  }
+};
+
+render();
+</script>
+</body>
+</html>
