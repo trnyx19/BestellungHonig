@@ -37,14 +37,14 @@ main { max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
 .ct { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .jar.big { flex: none; rotate: -7deg; }
 .chead h3 { font-size: 1.8rem; line-height: 1.1; }
-.chip { padding: 1px 12px; border: 2px solid var(--b); border-radius: 999px; font: 600 .85rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.chip { padding: 1px 12px; border: 2px solid var(--b); border-radius: 999px; font-size: .85rem; line-height: 1.4; font-weight: 600; }
 .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 12px 12px; border: 2px solid var(--b); border-radius: 18px; background: #FFFBE0; transition: background .15s, color .15s; }
 .tile.on { background: var(--b); color: var(--y); --line: var(--y); }
 .jar { display: block; height: auto; }
 .tl { display: flex; flex-direction: column; line-height: 1.1; }
 .size { font: 1.45rem Lobster, cursive; }
-.price { font: .85rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; margin-top: 2px; }
+.price { font-size: .85rem; line-height: 1.4; margin-top: 2px; }
 .ctl { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
 .ctl button { width: 38px; height: 38px; border-radius: 50%; border: 2px solid currentColor; background: transparent; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer; }
 .ctl button:hover { background: var(--b); color: var(--y); border-color: var(--b); }
@@ -57,7 +57,7 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .opt.selected { background: var(--b); color: var(--y); }
 .opt input { margin-top: 5px; accent-color: var(--y); }
 .opt b { display: block; font-size: 1.05rem; }
-.opt small { font: .9rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.opt small { font-size: .9rem; line-height: 1.4; }
 label.f { display: block; font-weight: 600; margin: 16px 0 5px; }
 input[type=text], input[type=email], input[type=date], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--b) !important; border-radius: 14px; background: #fff; color: var(--b); font: inherit; }
 textarea { min-height: 92px; resize: vertical; }
@@ -106,7 +106,7 @@ input:focus, textarea:focus { background: #FFFBE0; }
 
 .qr { margin: 26px 0 0; }
 .qr img { display: block; margin: 0 auto 8px; border: 3px solid var(--b); border-radius: 18px; box-shadow: 0 5px 0 var(--b); image-rendering: pixelated; }
-.qr figcaption { font: .9rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.qr figcaption { font-size: .9rem; line-height: 1.4; }
 
 /* Leiste */
 .bar { position: static; margin: 0 0 28px; background: var(--b); color: var(--y); padding: 16px; border-radius: 18px; box-shadow: 0 5px 0 rgba(0,0,0,.18); }
