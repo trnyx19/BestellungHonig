@@ -38,6 +38,7 @@ main { max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
 .jar.big { flex: none; rotate: -7deg; }
 .chead h3 { font-size: 1.8rem; line-height: 1.1; }
 .chip { padding: 1px 12px; border: 2px solid var(--b); border-radius: 999px; font-size: .85rem; line-height: 1.4; font-weight: 600; }
+.chip.plain { font-weight: 400; }
 .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .card.prod.single .tile { grid-column: 1 / -1; }
 .tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 12px 12px; border: 2px solid var(--b); border-radius: 18px; background: #FFFBE0; transition: background .15s, color .15s; }
@@ -143,6 +144,15 @@ body { padding-bottom: 32px; }
     <polygon points="13,14 54,14 49,19.5 54,25 13,25" fill="#FFE337"/>
     <rect x="18" y="18.6" width="26" height="2" fill="#822045" opacity=".85"/>
   </symbol>
+  <symbol id="comb" viewBox="0 0 100 90">
+    <path d="M24 9H76L94 38 76 67H24L6 38Z" style="fill:var(--honey,#F7EDC4);stroke:var(--line,#822045)" stroke-width="3" stroke-linejoin="round"/>
+    <g fill="#FFE337" stroke="#822045" stroke-width="2" stroke-linejoin="round">
+      <path d="M50 17 61 23V36L50 42 39 36V23Z"/>
+      <path d="M31 28 42 34V47L31 53 20 47V34Z"/>
+      <path d="M69 28 80 34V47L69 53 58 47V34Z"/>
+      <path d="M50 39 61 45V58L50 64 39 58V45Z"/>
+    </g>
+  </symbol>
 </svg>
 
 <div class="hero-wrap">
@@ -222,10 +232,10 @@ const FORM_ID = "9a142706317fe96d4dff834cbe088041";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
 const PRODUCTS = [
   { name: "Cremiger Honig",  note: "Frühling", honey: "#F7EDC4", sizes: [["cf250", "250 g", null], ["cf500", "500 g", null]] },
-  { name: "Cremiger Honig",  note: "Sommer",   honey: "#F7EDC4", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#5B2A12", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] },
-  { name: "Wald- und Blütenhonig", note: "", honey: "#D4A832", sizes: [["wb250", "250 g", null], ["wb500", "500 g", null]] },
-  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", sizes: [["wh1", "Stück", null]] }
+  { name: "Cremiger Honig",  note: "Sommer",   honey: "#F2DA78", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#70401D", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] },
+  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#5B2A12", sizes: [["wb250", "250 g", null], ["wb500", "500 g", null]] },
+  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", noteNormal: true, honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", null]] }
 ];
 /* ========================= */
 
@@ -236,9 +246,10 @@ const qty = {}, items = [];
 
 PRODUCTS.forEach(p => {
   const g = document.createElement("article");
+  const icon = p.icon || "jar";
   g.className = "card prod" + (p.sizes.length === 1 ? " single" : "");
   g.style.setProperty("--honey", p.honey);
-  g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#jar"/></svg><div class="ct"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
+  g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip' + (p.noteNormal ? ' plain' : '') + '">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
   p.sizes.forEach(([id, size, price]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
     items.push({ id, label, price });
@@ -248,7 +259,7 @@ PRODUCTS.forEach(p => {
     t.className = "tile";
     t.id = "tile-" + id;
     t.innerHTML =
-      '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#jar"/></svg>' +
+      '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
       '<div class="tl"><span class="size">' + size + "</span>" + (price != null ? '<span class="price">' + eur(price) + "</span>" : "") + "</div>" +
       '<div class="ctl">' +
       '<button type="button" data-id="' + id + '" data-d="-1" aria-label="Eins weniger: ' + label + '">−</button>' +
