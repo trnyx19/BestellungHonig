@@ -319,7 +319,8 @@ $("send").onclick = async () => {
     const d = await r.json();
     if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
     $("f").hidden = true; $("bar").hidden = true;
-    $("done").hidden = false; window.scrollTo(0, 0);
+    $("done").hidden = false;
+    $("done").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     $("status").textContent = "Das Senden hat nicht geklappt (" + (err && err.message ? err.message : "unbekannter Fehler") + "). Versuch es bitte nochmal oder melde dich über unseren Linktree.";
     btn.disabled = false; btn.textContent = "Bestellung absenden";
