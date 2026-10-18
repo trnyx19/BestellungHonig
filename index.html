@@ -21,7 +21,8 @@ main h2, main h3 { font-family: Lobster, cursive; font-weight: 400; margin: 0; }
 .hero p { margin: 14px auto 0; max-width: 46ch; font-size: 1.1rem; }
 .hint { width: fit-content; max-width: 100%; margin: 22px auto 0; padding: 12px 22px; background: var(--b); border: 2px solid var(--y); border-radius: 18px; font-weight: 600; font-size: 1rem; }
 .hero-wrap { position: relative; left: 50%; z-index: 1; width: 100vw !important; max-width: none !important; margin: -16px 0 16px -50vw !important; }
-main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
+main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
+main::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%); background: #FFE337 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='90' viewBox='0 0 52 90'%3E%3Cg fill='none' stroke='%23822045' stroke-opacity='.08' stroke-width='2'%3E%3Cpolygon points='26,0 52,15 52,45 26,60 0,45 0,15'/%3E%3Cpolygon points='0,45 26,60 26,90 0,105 -26,90 -26,60'/%3E%3Cpolygon points='52,45 78,60 78,90 52,105 26,90 26,60'/%3E%3C/g%3E%3C/svg%3E") repeat; pointer-events: none; }
 
 /* Steps */
 .step { margin-bottom: 34px; }
