@@ -11,12 +11,13 @@
 :root { --y: #FFE337; --b: #822045; --card: #FFF6BC; --honey: #F7EDC4; }
 * { box-sizing: border-box; }
 body { margin: 0; padding-bottom: 140px; background: var(--y) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='90' viewBox='0 0 52 90'%3E%3Cg fill='none' stroke='%23822045' stroke-opacity='.07' stroke-width='2'%3E%3Cpolygon points='26,0 52,15 52,45 26,60 0,45 0,15'/%3E%3Cpolygon points='0,45 26,60 26,90 0,105 -26,90 -26,60'/%3E%3Cpolygon points='52,45 78,60 78,90 52,105 26,90 26,60'/%3E%3C/g%3E%3C/svg%3E"); color: var(--b); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { background-attachment: fixed; }
 main { font-family: Lobster, cursive; }
 main h2, main h3 { font-family: Lobster, cursive; font-weight: 400; margin: 0; }
 
 /* Hero */
 .hero { background: var(--b) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='90' viewBox='0 0 52 90'%3E%3Cg fill='none' stroke='%23FFE337' stroke-opacity='.14' stroke-width='2'%3E%3Cpolygon points='26,0 52,15 52,45 26,60 0,45 0,15'/%3E%3Cpolygon points='0,45 26,60 26,90 0,105 -26,90 -26,60'/%3E%3Cpolygon points='52,45 78,60 78,90 52,105 26,90 26,60'/%3E%3C/g%3E%3C/svg%3E"); color: var(--y); position: relative; overflow: hidden; padding: 36px 20px 44px; text-align: center; border-bottom: 6px solid #5c1530; }
-.hero { border-bottom: 0; }
+.hero { background-attachment: fixed; border-bottom: 0 !important; }
 .hero h1 { font-size: clamp(3.4rem, 15vw, 6rem); line-height: 1; text-shadow: 0 4px 0 rgba(0,0,0,.25); }
 .hero p { margin: 14px auto 0; max-width: 46ch; font-size: 1.1rem; }
 .hint { width: fit-content; max-width: 100%; margin: 22px auto 0; padding: 12px 22px; background: var(--b); border: 2px solid var(--y); border-radius: 18px; font-weight: 600; font-size: 1rem; }
