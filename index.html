@@ -35,20 +35,20 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
 .n { flex: none; display: grid; place-items: center; width: 42px; height: 46px; background: var(--b); color: var(--y); font: 1.5rem Lobster, cursive; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
 
 /* Sorten */
-.card { background: var(--card); border: 2px solid var(--b); border-radius: 24px; padding: 16px 16px 18px; margin-bottom: 16px; box-shadow: 0 5px 0 var(--b); }
+.card { background: var(--card) !important; border: 2px solid var(--b); border-radius: 24px; padding: 16px 16px 18px; margin-bottom: 16px; box-shadow: 0 5px 0 var(--b); }
 .chead { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
 .ct { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .jar.big { flex: none; rotate: -7deg; }
 .chead h3 { font-size: 1.8rem; line-height: 1.1; }
-.chip { padding: 1px 12px; border: 2px solid var(--b); border-radius: 999px; font-size: .85rem; line-height: 1.4; font-weight: 400; }
+.chip { padding: 1px 12px; border: 2px solid var(--b); border-radius: 999px; font-size: .95rem; line-height: 1.45; font-weight: 400; }
 .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .card.prod.single .tile { grid-column: 1 / -1; }
-.tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 12px 12px; border: 2px solid var(--b); border-radius: 18px; background: #FFFBE0; transition: background .15s, color .15s; }
-.tile.on { background: var(--b); color: var(--y); --line: var(--y); }
+.tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 12px 12px; border: 2px solid var(--b); border-radius: 18px; background: #FFFBE0 !important; transition: background .15s, color .15s; }
+.tile.on { background: var(--b) !important; color: var(--y); --line: var(--y); }
 .jar { display: block; height: auto; }
 .tl { display: flex; flex-direction: column; line-height: 1.1; }
 .size { font: 1.45rem Lobster, cursive; }
-.price { font-size: .85rem; line-height: 1.4; margin-top: 2px; }
+.price { font-size: .95rem; line-height: 1.45; margin-top: 2px; }
 .ctl { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
 .ctl button { width: 38px; height: 38px; border-radius: 50%; border: 2px solid currentColor; background: transparent; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer; }
 .ctl button:hover { background: var(--b); color: var(--y); border-color: var(--b); }
@@ -57,13 +57,13 @@ main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding
 
 /* Abholung + Angaben */
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.opt { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 2px solid var(--b); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--b); cursor: pointer; }
-.opt.selected { background: var(--b); color: var(--y); }
+.opt { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 2px solid var(--b); border-radius: 18px; background: var(--card) !important; color: var(--b); box-shadow: 0 4px 0 var(--b); cursor: pointer; }
+.opt.selected { background: var(--b) !important; color: var(--y) !important; }
 .opt input { margin-top: 5px; accent-color: var(--y); }
 .opt b { display: block; font-size: 1.05rem; }
-.opt small { font-size: .9rem; line-height: 1.4; }
-label.f { display: block; font-weight: 600; margin: 16px 0 5px; }
-input[type=text], input[type=email], input[type=date], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--b) !important; border-radius: 14px; background: #fff; color: var(--b); font: inherit; }
+.opt small { font-size: .95rem; line-height: 1.45; }
+label.f { display: block; font-size: 1rem; font-weight: 600; margin: 16px 0 5px; }
+input[type=text], input[type=email], input[type=date], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--b) !important; border-radius: 14px; background: #fff !important; color: var(--b) !important; font: inherit; }
 textarea { min-height: 92px; resize: vertical; }
 :focus-visible { outline: 3px solid var(--b); outline-offset: 2px; }
 
@@ -110,7 +110,7 @@ input:focus, textarea:focus { background: #FFFBE0; }
 
 .qr { margin: 26px 0 0; }
 .qr img { display: block; margin: 0 auto 8px; border: 3px solid var(--b); border-radius: 18px; box-shadow: 0 5px 0 var(--b); image-rendering: pixelated; }
-.qr figcaption { font-size: .9rem; line-height: 1.4; }
+.qr figcaption { font-size: .95rem; line-height: 1.45; }
 
 /* Leiste */
 .bar { position: static; margin: 0 0 28px; background: var(--b); color: var(--y); padding: 16px; border-radius: 18px; box-shadow: 0 5px 0 rgba(0,0,0,.18); }
@@ -172,7 +172,7 @@ body { padding-bottom: 32px; }
 <svg class="page-background" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <pattern id="page-hex-pattern" width="52" height="90" patternUnits="userSpaceOnUse">
-      <g fill="none" stroke="#822045" stroke-opacity=".18" stroke-width="2">
+      <g fill="none" stroke="#822045" stroke-opacity=".08" stroke-width="2">
         <polygon points="26,0 52,15 52,45 26,60 0,45 0,15"/>
         <polygon points="0,45 26,60 26,90 0,105 -26,90 -26,60"/>
         <polygon points="52,45 78,60 78,90 52,105 26,90 26,60"/>
