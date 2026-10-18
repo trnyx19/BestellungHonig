@@ -18,12 +18,13 @@ h1, h2, h3, .lob { font-family: Lobster, cursive; font-weight: 400; margin: 0; }
 .hero h1 { font-size: clamp(3.4rem, 15vw, 6rem); line-height: 1; text-shadow: 0 4px 0 rgba(0,0,0,.25); }
 .hero p { margin: 14px auto 0; max-width: 46ch; font-size: 1.1rem; }
 .hint { width: fit-content; max-width: 100%; margin: 22px auto 0; padding: 12px 22px; background: var(--b); border: 2px solid var(--y); border-radius: 18px; font-weight: 600; font-size: 1rem; }
-.hero-wrap { margin-bottom: 0; }
+.hero-wrap { width: 100vw; margin: 0 0 0 calc(50% - 50vw); }
 main { max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
 
 /* Steps */
 .step { margin-bottom: 34px; }
-.step > h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 2rem; line-height: 1.1; }
+.step > h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; color: var(--b); font-size: 2rem; line-height: 1.1; }
+.step > h2 > span:not(.n) { min-width: 0; }
 .step > h2::after { content: ""; flex: 1; height: 2px; opacity: .35; background: repeating-linear-gradient(90deg, var(--b) 0 8px, transparent 8px 14px); }
 .n { flex: none; display: grid; place-items: center; width: 42px; height: 46px; background: var(--b); color: var(--y); font: 1.5rem Lobster, cursive; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
 
@@ -98,6 +99,7 @@ input:focus, textarea:focus { background: #FFFBE0; }
 .foot p { margin: 0 0 14px; line-height: 1.35; }
 .foot .lob { font-size: 1.5rem; }
 .link { display: inline-block; padding: 10px 24px; border-radius: 999px; background: var(--b); color: var(--y); font: 1.3rem Lobster, cursive; text-decoration: none; }
+.link:visited { color: var(--y); }
 .link:hover { filter: brightness(1.15); }
 
 .qr { margin: 26px 0 0; }
@@ -154,12 +156,12 @@ body { padding-bottom: 32px; }
 <main>
   <form id="f" onsubmit="return false" novalidate>
     <section class="step">
-      <h2><span class="n">1</span>Sorten wählen</h2>
+      <h2><span class="n">1</span><span>Sorten wählen</span></h2>
       <div id="products"></div>
     </section>
 
     <section class="step">
-      <h2><span class="n">2</span>Abholung</h2>
+      <h2><span class="n">2</span><span>Abholung</span></h2>
       <fieldset id="pickup-fs">
         <legend style="position:absolute;left:-9999px">Persönlich abholen oder Abholschrank?</legend>
         <div class="opts"><label class="opt"><input type="radio" name="pickup" value="Persönlich abholen (Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr)"><span><b>Persönlich abholen</b><small>Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr</small></span></label>
@@ -170,7 +172,7 @@ body { padding-bottom: 32px; }
     </section>
 
     <section class="step">
-      <h2><span class="n">3</span>Deine Angaben</h2>
+      <h2><span class="n">3</span><span>Deine Angaben</span></h2>
       <div class="two">
         <div><label class="f" for="name">Vorname</label><input id="name" type="text" autocomplete="given-name"></div>
         <div><label class="f" for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="email"></div>
@@ -216,9 +218,9 @@ body { padding-bottom: 32px; }
 const FORM_ID = "9a142706317fe96d4dff834cbe088041";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
 const PRODUCTS = [
+  { name: "Cremiger Honig",  note: "Frühling", honey: "#F7EDC4", sizes: [["cf250", "250 g", null], ["cf500", "500 g", null]] },
   { name: "Cremiger Honig",  note: "Sommer",   honey: "#F7EDC4", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#5B2A12", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] },
-  { name: "Cremiger Honig",  note: "Frühling", honey: "#F7EDC4", sizes: [["cf250", "250 g", null], ["cf500", "500 g", null]] }
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#5B2A12", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] }
 ];
 /* ========================= */
 
