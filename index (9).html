@@ -23,7 +23,8 @@ main { max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
 
 /* Steps */
 .step { margin-bottom: 34px; }
-.step > h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; color: var(--b); font-size: 2rem; line-height: 1.1; }
+.step > h2 { display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; justify-content: flex-start !important; align-items: center; gap: 12px; margin-bottom: 14px; color: var(--b) !important; font-size: 2rem; line-height: 1.1; text-align: left !important; }
+#f .step label.f { color: var(--b) !important; }
 .step > h2 > span:not(.n) { min-width: 0; }
 .step > h2::after { content: ""; flex: 1; height: 2px; opacity: .35; background: repeating-linear-gradient(90deg, var(--b) 0 8px, transparent 8px 14px); }
 .n { flex: none; display: grid; place-items: center; width: 42px; height: 46px; background: var(--b); color: var(--y); font: 1.5rem Lobster, cursive; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
@@ -36,7 +37,7 @@ main { max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
 .chead h3 { font-size: 1.8rem; line-height: 1.1; }
 .chip { padding: 1px 12px; border: 2px solid var(--b); border-radius: 999px; font-size: .85rem; font-weight: 600; }
 .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 12px 12px; border: 2px solid var(--b); border-radius: 18px; background: #fff; transition: background .15s, color .15s; }
+.tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 10px 12px 12px; border: 2px solid var(--b); border-radius: 18px; background: #FFFBE0; transition: background .15s, color .15s; }
 .tile.on { background: var(--b); color: var(--y); --line: var(--y); }
 .jar { display: block; height: auto; }
 .tl { display: flex; flex-direction: column; line-height: 1.1; }
@@ -56,7 +57,7 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .opt b { display: block; font-size: 1.05rem; }
 .opt small { font-size: .9rem; }
 label.f { display: block; font-weight: 600; margin: 16px 0 5px; }
-input[type=text], input[type=email], input[type=date], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--b); border-radius: 14px; background: #fff; color: var(--b); font: inherit; }
+input[type=text], input[type=email], input[type=date], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--b) !important; border-radius: 14px; background: #fff; color: var(--b); font: inherit; }
 textarea { min-height: 92px; resize: vertical; }
 :focus-visible { outline: 3px solid var(--b); outline-offset: 2px; }
 
@@ -96,10 +97,10 @@ input:focus, textarea:focus { background: #FFFBE0; }
 .logo { display: block; width: 150px; height: 150px; margin: 0 auto 16px; border-radius: 50%; box-shadow: 0 6px 0 rgba(0,0,0,.28); animation: rise .6s both; }
 .foot { text-align: center; margin: 22px 0 0; }
 .foot img { display: block; margin: 0 auto 10px; border-radius: 50%; }
-.foot p { margin: 0 0 14px; line-height: 1.35; }
+.foot p { margin: 0 0 14px; line-height: 1.35; color: var(--b) !important; }
 .foot .lob { font-size: 1.5rem; }
-.link { display: inline-block; padding: 10px 24px; border-radius: 999px; background: var(--b); color: var(--y); font: 1.3rem Lobster, cursive; text-decoration: none; }
-.link:visited { color: var(--y); }
+.link { display: inline-block; padding: 10px 24px; border-radius: 999px; background: var(--b); color: var(--y) !important; font: 1.3rem Lobster, cursive; text-decoration: none; }
+.link:visited { color: var(--y) !important; }
 .link:hover { filter: brightness(1.15); }
 
 .qr { margin: 26px 0 0; }
@@ -156,12 +157,12 @@ body { padding-bottom: 32px; }
 <main>
   <form id="f" onsubmit="return false" novalidate>
     <section class="step">
-      <h2><span class="n">1</span><span>Sorten wählen</span></h2>
+      <h2><span style="display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:12px!important;white-space:nowrap!important;"><span class="n">1</span><span style="color:#822045!important;">Sorten wählen</span></span></h2>
       <div id="products"></div>
     </section>
 
     <section class="step">
-      <h2><span class="n">2</span><span>Abholung</span></h2>
+      <h2><span style="display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:12px!important;white-space:nowrap!important;"><span class="n">2</span><span style="color:#822045!important;">Abholung</span></span></h2>
       <fieldset id="pickup-fs">
         <legend style="position:absolute;left:-9999px">Persönlich abholen oder Abholschrank?</legend>
         <div class="opts"><label class="opt"><input type="radio" name="pickup" value="Persönlich abholen (Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr)"><span><b>Persönlich abholen</b><small>Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr</small></span></label>
@@ -172,7 +173,7 @@ body { padding-bottom: 32px; }
     </section>
 
     <section class="step">
-      <h2><span class="n">3</span><span>Deine Angaben</span></h2>
+      <h2><span style="display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:12px!important;white-space:nowrap!important;"><span class="n">3</span><span style="color:#822045!important;">Deine Angaben</span></span></h2>
       <div class="two">
         <div><label class="f" for="name">Vorname</label><input id="name" type="text" autocomplete="given-name"></div>
         <div><label class="f" for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="email"></div>
