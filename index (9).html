@@ -105,7 +105,8 @@ input:focus, textarea:focus { background: #FFFBE0; }
 .qr figcaption { font-size: .9rem; }
 
 /* Leiste */
-.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--b); color: var(--y); padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 0 rgba(0,0,0,.18); }
+.bar { position: static; margin: 0 0 28px; background: var(--b); color: var(--y); padding: 16px; border-radius: 18px; box-shadow: 0 5px 0 rgba(0,0,0,.18); }
+body { padding-bottom: 32px; }
 .bar :focus-visible { outline-color: var(--y); }
 .bar-in { max-width: 540px; margin: 0 auto; display: grid; gap: 8px; }
 #status { margin: 0; font-weight: 600; }
@@ -180,6 +181,16 @@ input:focus, textarea:focus { background: #FFFBE0; }
     </section>
   </form>
 
+  <div class="bar" id="bar">
+    <div class="bar-in">
+      <p id="status" role="status"></p>
+      <div class="bar-row">
+        <div class="sum" id="sum" aria-live="polite"></div>
+        <button class="send" id="send" type="button">Bestellung absenden</button>
+      </div>
+    </div>
+  </div>
+
   <section class="card" id="done" hidden>
     <svg class="jar" width="120" viewBox="0 0 100 90" aria-hidden="true" style="margin:0 auto"><use href="#jar"/></svg>
     <h2>Danke!</h2>
@@ -198,21 +209,11 @@ input:focus, textarea:focus { background: #FFFBE0; }
   </footer>
 </main>
 
-<div class="bar" id="bar">
-  <div class="bar-in">
-    <p id="status" role="status"></p>
-    <div class="bar-row">
-      <div class="sum" id="sum" aria-live="polite"></div>
-      <button class="send" id="send" type="button">Bestellung absenden</button>
-    </div>
-  </div>
-</div>
-
 <script>
 /* ===== Hier anpassen ===== */
 // Nach der Aktivierung schickt dir FormSubmit eine Zufalls-ID. Ersetze die Mailadresse hier durch diese ID,
 // dann steht deine Mailadresse nirgends mehr im Quelltext.
-const FORM_ID = "landimkereidiezinger@gmail.com";
+const FORM_ID = "9a142706317fe96d4dff834cbe088041";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
 const PRODUCTS = [
   { name: "Cremiger Honig",  note: "Sommer",   honey: "#F7EDC4", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
@@ -265,12 +266,12 @@ $("products").addEventListener("click", e => {
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const bump = el => { if (el && !calm && el.animate) el.animate([{ transform: "scale(1.35)" }, { transform: "scale(1)" }], { duration: 200 }); };
 const chosen = () => items.filter(i => qty[i.id] > 0);
-function total() {
-  const c = chosen();
+function total(c = chosen()) {
   return c.length && c.every(i => i.price != null) ? c.reduce((s, i) => s + i.price * qty[i.id], 0) : null;
 }
 function render() {
-  const n = chosen().reduce((s, i) => s + qty[i.id], 0), t = total();
+  const c = chosen();
+  const n = c.reduce((s, i) => s + qty[i.id], 0), t = total(c);
   $("sum").innerHTML = n ? '<span class="cnt">' + n + "</span>" + (n === 1 ? "Glas" : "Gläser") + (t != null ? " · " + eur(t) : "") : "Noch nichts gewählt";
 }
 
