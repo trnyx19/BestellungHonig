@@ -52,7 +52,7 @@ main { max-width: 760px; margin: 0 auto; padding: 32px 16px 0; }
 /* Abholung + Angaben */
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .opt { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 2px solid var(--b); border-radius: 18px; background: var(--card); box-shadow: 0 4px 0 var(--b); cursor: pointer; }
-.opt:has(input:checked) { background: var(--b); color: var(--y); }
+.opt.selected { background: var(--b); color: var(--y); }
 .opt input { margin-top: 5px; accent-color: var(--y); }
 .opt b { display: block; font-size: 1.05rem; }
 .opt small { font-size: .9rem; }
@@ -78,9 +78,9 @@ textarea { min-height: 92px; resize: vertical; }
 .tile.on { animation: pop .25s; }
 .ctl output { display: inline-block; min-width: 1.4em; text-align: center; }
 input:focus, textarea:focus { background: #FFFBE0; }
-.hj { position: absolute; display: none; --honey: #F7EDC4; --line: #FFF6BC; animation: float 6s ease-in-out infinite; }
+.hj { position: absolute; display: none; --honey: #F7EDC4; --line: #FFF6BC; }
 .hj1 { left: 7%; top: 48px; rotate: -12deg; }
-.hj2 { --honey: #5B2A12; right: 7%; top: 64px; rotate: 10deg; animation-delay: -3s; }
+.hj2 { --honey: #5B2A12; right: 7%; top: 64px; rotate: 10deg; }
 .hero h1 { animation: rise .6s both; }
 .hero p { animation: rise .6s .12s both; }
 .hint { animation: rise .6s .24s both; }
@@ -89,7 +89,6 @@ input:focus, textarea:focus { background: #FFFBE0; }
 .hexrow i { width: 22px; height: 25px; background: var(--b); opacity: .85; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
 .hexrow i:nth-child(2) { translate: 0 12px; }
 @keyframes pop { 50% { transform: scale(1.04); } }
-@keyframes float { 50% { translate: 0 -10px; } }
 @keyframes rise { from { opacity: 0; translate: 0 14px; } }
 @media (min-width: 820px) { .hj { display: block; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
@@ -253,6 +252,14 @@ PRODUCTS.forEach(p => {
     g.querySelector(".sizes").appendChild(t);
   });
   $("products").appendChild(g);
+});
+
+$("pickup-fs").addEventListener("change", e => {
+  const input = e.target;
+  if (!input.matches('input[name="pickup"]')) return;
+  document.querySelectorAll("#pickup-fs .opt").forEach(label => {
+    label.classList.toggle("selected", label.contains(input) && input.checked);
+  });
 });
 
 $("products").addEventListener("click", e => {
