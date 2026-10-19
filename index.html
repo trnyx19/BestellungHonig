@@ -47,8 +47,13 @@ main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; mar
 .tl { display: flex; flex-direction: column; line-height: 1.1; }
 .size { font: 1.45rem Lobster, cursive; }
 .price { font-size: .95rem; line-height: 1.45; margin-top: 2px; }
+.availability { grid-column: 1 / -1; width: fit-content; padding: 3px 9px; border: 1px solid currentColor; border-radius: 999px; font: 600 .82rem/1.4 system-ui, sans-serif; }
+.availability.available { color: #236A3B; background: #E5F3E8; }
+.availability.few { color: #785000; background: #FFF0C2; }
+.availability.soldout { color: #B42318; background: #FCE8E6; }
 .ctl { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
 .ctl button { width: 38px; height: 38px; border-radius: 50%; border: 2px solid currentColor; background: transparent; color: inherit; font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.ctl button:disabled { opacity: .4; cursor: not-allowed; }
 .ctl button:hover { background: var(--b); color: var(--y); border-color: var(--b); }
 .tile.on .ctl button:hover { background: var(--y); color: var(--b); border-color: var(--y); }
 .ctl output { font: 1.8rem Lobster, cursive; }
@@ -242,11 +247,12 @@ body { padding-bottom: 32px; }
 // dann steht deine Mailadresse nirgends mehr im Quelltext.
 const FORM_ID = "9a142706317fe96d4dff834cbe088041";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
+// Verfügbarkeit je Glas: status = "available" | "few" | "soldout"; count = Restmenge als Zahl oder null ohne Mengenlimit.
 const PRODUCTS = [
-  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", null], ["cf500", "500 g", null]] },
-  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] },
-  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", null], ["wb500", "500 g", null]] },
+  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", null, { status: "available", count: null }], ["cf500", "500 g", null, { status: "available", count: null }]] },
+  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", null, { status: "available", count: null }], ["cs500", "500 g", null, { status: "available", count: null }]] },
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", null, { status: "available", count: null }], ["fs500", "500 g", null, { status: "available", count: null }]] },
+  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", null, { status: "available", count: null }], ["wb500", "500 g", null, { status: "available", count: null }]] },
   { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", null]] }
 ];
 /* ========================= */
@@ -262,8 +268,11 @@ PRODUCTS.forEach(p => {
   g.className = "card prod" + (p.sizes.length === 1 ? " single" : "");
   g.style.setProperty("--honey", p.honey);
   g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
-  p.sizes.forEach(([id, size, price]) => {
+  p.sizes.forEach(([id, size, price, availability = {}]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
+    const count = Number.isInteger(availability.count) && availability.count >= 0 ? availability.count : null;
+    const status = count === 0 ? "soldout" : (availability.status || "available");
+    const statusLabels = { available: "Verfügbar", few: "Nur noch wenige", soldout: "Ausverkauft" };
     items.push({ id, label, price });
     qty[id] = 0;
     const w = parseInt(size) > 300 ? 58 : 44;
@@ -273,10 +282,13 @@ PRODUCTS.forEach(p => {
     t.innerHTML =
       '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
       '<div class="tl"><span class="size">' + size + "</span>" + (price != null ? '<span class="price">' + eur(price) + "</span>" : "") + "</div>" +
+      '<span class="availability ' + status + '" role="status">' + statusLabels[status] + (count > 0 ? " · " + count + " verfügbar" : "") + "</span>" +
       '<div class="ctl">' +
       '<button type="button" data-id="' + id + '" data-d="-1" aria-label="Eins weniger: ' + label + '">−</button>' +
       '<output id="q-' + id + '">0</output>' +
-      '<button type="button" data-id="' + id + '" data-d="1" aria-label="Eins mehr: ' + label + '">+</button></div>';
+      '<button type="button" data-id="' + id + '" data-d="1" aria-label="Eins mehr: ' + label + '"' + (status === "soldout" || count === 0 ? " disabled" : "") + '>+</button></div>';
+    t.dataset.limit = count == null ? "20" : String(count);
+    t.dataset.soldout = String(status === "soldout");
     g.querySelector(".sizes").appendChild(t);
   });
   $("products").appendChild(g);
@@ -294,9 +306,12 @@ $("products").addEventListener("click", e => {
   const b = e.target.closest("button[data-id]");
   if (!b) return;
   const id = b.dataset.id;
-  qty[id] = Math.max(0, Math.min(20, qty[id] + Number(b.dataset.d)));
+  const tile = $("tile-" + id);
+  const limit = tile.dataset.soldout === "true" ? 0 : Number(tile.dataset.limit);
+  qty[id] = Math.max(0, Math.min(limit, qty[id] + Number(b.dataset.d)));
   $("q-" + id).textContent = qty[id];
-  $("tile-" + id).classList.toggle("on", qty[id] > 0);
+  tile.classList.toggle("on", qty[id] > 0);
+  tile.querySelector('button[data-d="1"]').disabled = qty[id] >= limit;
   render();
   bump($("q-" + id)); bump(document.querySelector(".cnt"));
 });
