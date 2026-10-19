@@ -48,6 +48,7 @@ main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; mar
 .size { font: 1.45rem Lobster, cursive; }
 .price { font-size: .95rem; line-height: 1.45; margin-top: 2px; }
 .availability { grid-column: 1 / -1; width: fit-content; padding: 3px 9px; border: 1px solid currentColor; border-radius: 999px; font: 600 .82rem/1.4 system-ui, sans-serif; }
+.availability.loading { color: #5B5860; background: #F0EEF1; }
 .availability.available { color: #236A3B; background: #E5F3E8; }
 .availability.few { color: #785000; background: #FFF0C2; }
 .availability.soldout { color: #B42318; background: #FCE8E6; }
@@ -246,14 +247,16 @@ body { padding-bottom: 32px; }
 // Nach der Aktivierung schickt dir FormSubmit eine Zufalls-ID. Ersetze die Mailadresse hier durch diese ID,
 // dann steht deine Mailadresse nirgends mehr im Quelltext.
 const FORM_ID = "9a142706317fe96d4dff834cbe088041";
+// Nach der Bereitstellung des Apps-Script-Web-App-Endpunkts hier die URL eintragen.
+const STOCK_API = "https://script.google.com/macros/s/AKfycbz--QXl5yxlw_zdT1gtvzCSiKuvSQ7Pk12C3P_ZSzG_hzEteA4OsoTrlB323yLAUHL-iw/exec";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
-// Verfügbarkeit je Glas: status = "available" | "few" | "soldout".
+// Der Bestand und die Status werden aus dem Google Sheet geladen.
 const PRODUCTS = [
-  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", null, { status: "available" }], ["cf500", "500 g", null, { status: "available" }]] },
-  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", null, { status: "available" }], ["cs500", "500 g", null, { status: "few" }]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", null, { status: "available" }], ["fs500", "500 g", null, { status: "available" }]] },
-  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", null, { status: "few" }], ["wb500", "500 g", null, { status: "few" }]] },
-  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", null, { status: "available" }]] }
+  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", null], ["cf500", "500 g", null]] },
+  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] },
+  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", null], ["wb500", "500 g", null]] },
+  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", null]] }
 ];
 /* ========================= */
 
@@ -268,10 +271,8 @@ PRODUCTS.forEach(p => {
   g.className = "card prod" + (p.sizes.length === 1 ? " single" : "");
   g.style.setProperty("--honey", p.honey);
   g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
-  p.sizes.forEach(([id, size, price, availability = {}]) => {
+  p.sizes.forEach(([id, size, price]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
-    const status = ["available", "few", "soldout"].includes(availability.status) ? availability.status : "available";
-    const statusLabels = { available: "Verfügbar", few: "Wenige verfügbar", soldout: "Ausverkauft" };
     items.push({ id, label, price });
     qty[id] = 0;
     const w = parseInt(size) > 300 ? 58 : 44;
@@ -281,16 +282,93 @@ PRODUCTS.forEach(p => {
     t.innerHTML =
       '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
       '<div class="tl"><span class="size">' + size + "</span>" + (price != null ? '<span class="price">' + eur(price) + "</span>" : "") + "</div>" +
-      '<span class="availability ' + status + '" role="status">' + statusLabels[status] + "</span>" +
+      '<span class="availability loading" id="stock-status-' + id + '" role="status">Bestand wird geladen</span>' +
       '<div class="ctl">' +
       '<button type="button" data-id="' + id + '" data-d="-1" aria-label="Eins weniger: ' + label + '">−</button>' +
       '<output id="q-' + id + '">0</output>' +
-      '<button type="button" data-id="' + id + '" data-d="1" aria-label="Eins mehr: ' + label + '"' + (status === "soldout" ? " disabled" : "") + '>+</button></div>';
-    t.dataset.soldout = String(status === "soldout");
+      '<button type="button" data-id="' + id + '" data-d="1" aria-label="Eins mehr: ' + label + '" disabled>+</button></div>';
+    t.dataset.soldout = "false";
+    t.dataset.stockStatus = "loading";
     g.querySelector(".sizes").appendChild(t);
   });
   $("products").appendChild(g);
 });
+
+let stockReady = false;
+function applyStock(stock, lowStockThreshold = 6) {
+  const labels = { available: "Verfügbar", few: "Wenige verfügbar", soldout: "Ausverkauft" };
+  const threshold = Number.isInteger(lowStockThreshold) && lowStockThreshold >= 0 ? lowStockThreshold : 6;
+  items.forEach(item => {
+    const count = stock[item.id];
+    if (!Number.isInteger(count) || count < 0) throw new Error("Bestandsdaten für " + item.label + " sind ungültig.");
+    const status = count === 0 ? "soldout" : count <= threshold ? "few" : "available";
+    const tile = $("tile-" + item.id);
+    const badge = $("stock-status-" + item.id);
+    tile.dataset.soldout = String(status === "soldout");
+    tile.dataset.stockStatus = status;
+    badge.className = "availability " + status;
+    badge.textContent = labels[status];
+    tile.querySelector('button[data-d="1"]').disabled = status === "soldout" || qty[item.id] >= 20;
+  });
+  stockReady = true;
+}
+
+function loadStock() {
+  if (!STOCK_API) return Promise.reject(new Error("Die Bestandsverbindung ist noch nicht eingerichtet."));
+  return new Promise((resolve, reject) => {
+    const callback = "__honeyStock_" + Date.now();
+    const script = document.createElement("script");
+    const cleanup = () => { delete window[callback]; script.remove(); };
+    window[callback] = result => {
+      cleanup();
+      if (!result || !result.ok) return reject(new Error(result && result.message || "Bestand konnte nicht geladen werden."));
+      try { applyStock(result.stock, result.lowStockThreshold); resolve(result.stock); }
+      catch (error) { reject(error); }
+    };
+    script.onerror = () => { cleanup(); reject(new Error("Bestand konnte nicht geladen werden.")); };
+    script.src = STOCK_API + (STOCK_API.includes("?") ? "&" : "?") + "callback=" + callback + "&_=" + Date.now();
+    document.body.appendChild(script);
+  });
+}
+
+function reserveStock(order) {
+  return new Promise((resolve, reject) => {
+    const frame = $("stock-order-frame");
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = STOCK_API;
+    form.target = frame.name;
+    form.hidden = true;
+    const input = document.createElement("input");
+    input.name = "payload";
+    input.value = JSON.stringify(order);
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    const cleanup = () => {
+      window.removeEventListener("message", onMessage);
+      clearTimeout(timeout);
+      form.remove();
+    };
+    const onMessage = event => {
+      if (event.source !== frame.contentWindow || !event.data || typeof event.data.ok !== "boolean") return;
+      cleanup();
+      resolve(event.data);
+    };
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("Der Bestand antwortet gerade nicht. Bitte prüfe die Verbindung und versuche es erneut."));
+    }, 30000);
+    window.addEventListener("message", onMessage);
+    form.submit();
+  });
+}
+
+const orderFrame = document.createElement("iframe");
+orderFrame.id = "stock-order-frame";
+orderFrame.name = "stock-order-frame";
+orderFrame.hidden = true;
+document.body.appendChild(orderFrame);
 
 $("pickup-fs").addEventListener("change", e => {
   const input = e.target;
@@ -305,7 +383,7 @@ $("products").addEventListener("click", e => {
   if (!b) return;
   const id = b.dataset.id;
   const tile = $("tile-" + id);
-  if (tile.dataset.soldout === "true" && Number(b.dataset.d) > 0) return;
+  if (tile.dataset.stockStatus === "loading" || (tile.dataset.soldout === "true" && Number(b.dataset.d) > 0)) return;
   qty[id] = Math.max(0, Math.min(20, qty[id] + Number(b.dataset.d)));
   $("q-" + id).textContent = qty[id];
   tile.classList.toggle("on", qty[id] > 0);
@@ -335,6 +413,7 @@ function fail(msg, el) {
   return false;
 }
 function ready() {
+  if (!stockReady) return fail("Die Verfügbarkeit konnte nicht geladen werden. Bitte versuch es später erneut.", $("products"));
   if (!chosen().length) return fail("Wähl zuerst mindestens ein Glas aus.", $("products"));
   if (!document.querySelector('input[name="pickup"]:checked')) return fail("Bitte wähl aus, wie du abholen willst.", $("pickup-fs"));
   if (!val("name")) return fail("Bitte trag deinen Vornamen ein.", $("name"));
@@ -343,6 +422,9 @@ function ready() {
   return true;
 }
 
+let pendingOrderId = null;
+const newOrderId = () => window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2);
+
 $("send").onclick = async () => {
   if (!ready()) return;
   const btn = $("send"), t = total();
@@ -350,26 +432,56 @@ $("send").onclick = async () => {
   const body = { _subject: "Neue Honigbestellung von " + val("name"), _template: "table", _captcha: "false", _honey: $("hp").value, name: val("name"), email: val("email") };
   chosen().forEach(i => { body[i.label] = qty[i.id] + "×"; });
   if (t != null) body["Gesamt"] = eur(t);
-  body["Abholung"] = document.querySelector('input[name="pickup"]:checked').value;
+  const pickup = document.querySelector('input[name="pickup"]:checked').value;
+  body["Abholung"] = pickup;
   if ($("date").value) body["Wunschtermin"] = fmtDate($("date").value);
   if (val("msg")) body["Sonstige Wünsche"] = val("msg");
   try {
-    const r = await fetch("https://formsubmit.co/ajax/" + FORM_ID, {
-      method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body)
+    if (!pendingOrderId) pendingOrderId = newOrderId();
+    const result = await reserveStock({
+      orderId: pendingOrderId,
+      name: val("name"),
+      email: val("email"),
+      items: chosen().map(item => ({ id: item.id, quantity: qty[item.id] })),
+      pickup,
+      date: $("date").value ? fmtDate($("date").value) : "",
+      note: val("msg"),
+      honeypot: $("hp").value
     });
-    const d = await r.json();
-    if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
+    if (!result.ok) {
+      pendingOrderId = null;
+      await loadStock().catch(() => {});
+      throw new Error(result.message || "Die Bestellung konnte nicht angenommen werden.");
+    }
+    pendingOrderId = null;
+    applyStock(result.stock, result.lowStockThreshold);
+
+    let emailWarning = "";
+    try {
+      const r = await fetch("https://formsubmit.co/ajax/" + FORM_ID, {
+        method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body)
+      });
+      const d = await r.json();
+      if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
+    } catch (error) {
+      emailWarning = "Deine Bestellung wurde gespeichert. Die E-Mail-Benachrichtigung konnte jedoch nicht gesendet werden. Bitte kontaktiere uns zur Sicherheit über unseren Linktree.";
+    }
     $("f").hidden = true; $("bar").hidden = true;
     $("done").hidden = false;
+    if (emailWarning) $("done").querySelector("p").textContent = emailWarning;
     $("done").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
-    $("status").textContent = "Das Senden hat nicht geklappt (" + (err && err.message ? err.message : "unbekannter Fehler") + "). Versuch es bitte nochmal oder melde dich über unseren Linktree.";
+    $("status").textContent = err && err.message ? err.message : "Das Senden hat nicht geklappt. Versuch es bitte nochmal.";
     btn.disabled = false; btn.textContent = "Bestellung absenden";
   }
 };
 
 $("logo2").src = $("logo1").src;
 render();
+loadStock().catch(error => {
+  stockReady = false;
+  $("status").textContent = error.message + " Bitte verbinde zuerst das Google Sheet.";
+});
 </script>
 </body>
 </html>
