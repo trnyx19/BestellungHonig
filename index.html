@@ -296,7 +296,7 @@ PRODUCTS.forEach(p => {
 
 let stockReady = false;
 function applyStock(stock, lowStockThreshold = 6) {
-  const labels = { available: "Verfügbar", few: "Wenige verfügbar", soldout: "Ausverkauft" };
+  const labels = { available: "Verfügbar", few: "Wenig verfügbar", soldout: "Ausverkauft" };
   const threshold = Number.isInteger(lowStockThreshold) && lowStockThreshold >= 0 ? lowStockThreshold : 6;
   items.forEach(item => {
     const count = stock[item.id];
@@ -306,9 +306,10 @@ function applyStock(stock, lowStockThreshold = 6) {
     const badge = $("stock-status-" + item.id);
     tile.dataset.soldout = String(status === "soldout");
     tile.dataset.stockStatus = status;
+    tile.dataset.stockCount = String(count);
     badge.className = "availability " + status;
-    badge.textContent = labels[status];
-    tile.querySelector('button[data-d="1"]').disabled = status === "soldout" || qty[item.id] >= 20;
+    badge.textContent = status === "soldout" ? labels[status] : labels[status] + " (" + count + ")";
+    tile.querySelector('button[data-d="1"]').disabled = status === "soldout" || qty[item.id] >= count || qty[item.id] >= 20;
   });
   stockReady = true;
 }
@@ -361,6 +362,11 @@ function reserveStock(order) {
           resolve(result);
           return;
         }
+        if (result.outcomeReady) {
+          cleanup();
+          reject(new Error(result.message || "Die Bestellung wurde abgelehnt."));
+          return;
+        }
       } catch (error) {
         if (Date.now() >= deadline) {
           cleanup();
@@ -405,10 +411,12 @@ $("products").addEventListener("click", e => {
   const id = b.dataset.id;
   const tile = $("tile-" + id);
   if (tile.dataset.stockStatus === "loading" || (tile.dataset.soldout === "true" && Number(b.dataset.d) > 0)) return;
-  qty[id] = Math.max(0, Math.min(20, qty[id] + Number(b.dataset.d)));
+  const limit = Math.min(20, Number(tile.dataset.stockCount));
+  if (Number(b.dataset.d) > 0 && qty[id] >= limit) return;
+  qty[id] = Math.max(0, Math.min(limit, qty[id] + Number(b.dataset.d)));
   $("q-" + id).textContent = qty[id];
   tile.classList.toggle("on", qty[id] > 0);
-  tile.querySelector('button[data-d="1"]').disabled = tile.dataset.soldout === "true" || qty[id] >= 20;
+  tile.querySelector('button[data-d="1"]').disabled = tile.dataset.soldout === "true" || qty[id] >= limit;
   render();
   bump($("q-" + id)); bump(document.querySelector(".cnt"));
 });

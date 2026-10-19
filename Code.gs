@@ -46,19 +46,32 @@ function doGet(e) {
     const stock = readInventory_();
     const orderId = String((e && e.parameter && e.parameter.orderId) || "");
     let accepted;
+    let outcomeReady = false;
+    let orderMessage = "";
     if (orderId) {
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ORDERS_SHEET);
       const rows = sheet && sheet.getLastRow() > 1
         ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 8).getValues()
         : [];
       accepted = rows.some(function(row) { return String(row[0]) === orderId; });
+      outcomeReady = accepted;
+      if (!accepted) {
+        const cached = CacheService.getScriptCache().get("order_" + orderId);
+        if (cached) {
+          const outcome = JSON.parse(cached);
+          accepted = outcome.accepted;
+          orderMessage = outcome.message || "";
+          outcomeReady = true;
+        }
+      }
     }
     const result = JSON.stringify({
       ok: true,
       accepted: accepted,
+      outcomeReady: outcomeReady,
       stock: stock,
       lowStockThreshold: LOW_STOCK_THRESHOLD,
-      message: accepted === false ? "Die Bestellung wurde nicht im Bestellblatt gefunden." : ""
+      message: orderMessage
     });
     return ContentService.createTextOutput(callback + "(" + result + ");")
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
@@ -70,12 +83,18 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  let orderId = "";
   try {
     const payload = JSON.parse((e && e.parameter && e.parameter.payload) || "{}");
+    orderId = String(payload.orderId || "");
     reserveOrder_(payload);
+    if (orderId) CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: true }), 300);
     return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (error) {
+    if (orderId) {
+      CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: false, message: error.message }), 300);
+    }
     return HtmlService.createHtmlOutput("Bestellung konnte nicht verarbeitet werden.")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
@@ -140,7 +159,7 @@ function reserveOrder_(payload) {
       const product = rowById[id];
       if (!product || quantity > 20) throw new Error("Eine ausgewählte Sorte oder Menge ist ungültig.");
       if (quantity > product.stock) {
-        throw new Error("Für " + product.name + " (" + product.size + ") sind nicht mehr genug Gläser verfügbar.");
+        throw new Error("Zu viel ausgewählt: " + product.name + " (" + product.size + "). Du hast " + quantity + " gewählt, verfügbar sind " + product.stock + ". Bitte reduziere die Menge.");
       }
       return { id: id, quantity: quantity, product: product };
     });
