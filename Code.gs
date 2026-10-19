@@ -90,7 +90,10 @@ function doPost(e) {
     orderId = String(payload.orderId || "");
     const result = reserveOrder_(payload);
     if (orderId) CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: true }), 300);
-    sendLowStockAlerts_(result.lowStockAlerts || []);
+    if (!result.duplicate) {
+      sendNewOrderTelegram_(result.telegramOrder);
+      sendLowStockAlerts_(result.lowStockAlerts || []);
+    }
     return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (error) {
@@ -142,29 +145,50 @@ function sendCurrentLowStockAlerts() {
 
 function sendLowStockAlerts_(alerts) {
   if (!alerts.length) return;
+  alerts.forEach(function(item) {
+    const message = "Lagerwarnung: " + item.name + " (" + item.size + ") hat nur noch " + item.count + ".";
+    sendTelegramMessage_(message);
+  });
+}
+
+function sendNewOrderTelegram_(order) {
+  if (!order) return;
+  const lines = [
+    "Neue Honigbestellung",
+    "Name: " + order.name,
+    "Artikel:",
+    order.items.map(function(item) {
+      return "- " + item.quantity + " x " + item.name + " (" + item.size + ")";
+    }).join("\n"),
+    "Abholung: " + (order.pickup || "Keine Angabe")
+  ];
+  if (order.date) lines.push("Wunschtermin: " + order.date);
+  sendTelegramMessage_(lines.join("\n"));
+}
+
+function sendTelegramMessage_(message) {
   const properties = PropertiesService.getScriptProperties();
   const token = properties.getProperty("TELEGRAM_BOT_TOKEN");
   const chatId = properties.getProperty("TELEGRAM_CHAT_ID");
   if (!token || !chatId) {
-    console.warn("Telegram-Warnung übersprungen: TELEGRAM_BOT_TOKEN oder TELEGRAM_CHAT_ID fehlt.");
-    return;
+    console.warn("Telegram-Nachricht übersprungen: TELEGRAM_BOT_TOKEN oder TELEGRAM_CHAT_ID fehlt.");
+    return false;
   }
 
-  alerts.forEach(function(item) {
-    const message = "Lagerwarnung: " + item.name + " (" + item.size + ") hat nur noch " + item.count + ".";
-    try {
-      const response = UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
-        method: "post",
-        contentType: "application/json",
-        payload: JSON.stringify({ chat_id: chatId, text: message }),
-        muteHttpExceptions: true
-      });
-      const result = JSON.parse(response.getContentText());
-      if (!result.ok) throw new Error("Telegram hat die Nachricht abgelehnt.");
-    } catch (error) {
-      console.error("Telegram-Lagerwarnung konnte nicht gesendet werden: " + error.message);
-    }
-  });
+  try {
+    const response = UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({ chat_id: chatId, text: message }),
+      muteHttpExceptions: true
+    });
+    const result = JSON.parse(response.getContentText());
+    if (!result.ok) throw new Error("Telegram hat die Nachricht abgelehnt.");
+    return true;
+  } catch (error) {
+    console.error("Telegram-Nachricht konnte nicht gesendet werden: " + error.message);
+    return false;
+  }
 }
 
 function readInventory_() {
@@ -268,7 +292,20 @@ function reserveOrder_(payload) {
       throw error;
     }
 
-    return { ok: true, stock: readInventory_(), lowStockThreshold: LOW_STOCK_THRESHOLD, lowStockAlerts: lowStockAlerts };
+    return {
+      ok: true,
+      stock: readInventory_(),
+      lowStockThreshold: LOW_STOCK_THRESHOLD,
+      lowStockAlerts: lowStockAlerts,
+      telegramOrder: {
+        name: name,
+        items: purchases.map(function(item) {
+          return { name: item.product.name, size: item.product.size, quantity: item.quantity };
+        }),
+        pickup: String(payload.pickup || ""),
+        date: String(payload.date || "")
+      }
+    };
   } finally {
     lock.releaseLock();
   }
