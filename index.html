@@ -66,6 +66,7 @@ fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .opt input { margin-top: 5px; accent-color: var(--y); }
 .opt b { display: block; font-size: 1.05rem; }
 .opt small { font-size: .95rem; line-height: 1.45; }
+.pickup-fee-note { margin: 10px 4px 0; color: var(--b); font: .88rem/1.45 system-ui, sans-serif; }
 label.f { display: block; font-size: 1rem; font-weight: 600; margin: 16px 0 5px; }
 input[type=text], input[type=email], input[type=date], textarea { width: 100%; padding: 12px 14px; border: 2px solid var(--b) !important; border-radius: 14px; background: var(--card) !important; color: var(--b) !important; font: inherit; }
 textarea { min-height: 92px; resize: vertical; }
@@ -198,6 +199,7 @@ body { padding-bottom: 32px; }
         <div class="opts"><label class="opt"><input type="radio" name="pickup" value="Persönlich abholen (Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr)"><span><b>Persönlich abholen</b><small>Mo–Fr 16:30–19 Uhr, Sa–So 10–20 Uhr</small></span></label>
         <label class="opt"><input type="radio" name="pickup" value="Abholschrank (24/7)"><span><b>Abholschrank</b><small>24/7, sofern jemand zum Auffüllen da ist</small></span></label></div>
       </fieldset>
+      <p class="pickup-fee-note">Bei Nutzung des Abholschranks berechnen wir einmalig 1,00 € pro Bestellung. Der Zuschlag deckt Stromkosten, Arbeitszeit und anfallende Gebühren.</p>
       <label class="f" for="date">Wunschtermin zum Abholen (optional)</label>
       <input id="date" type="date">
     </section>
@@ -252,10 +254,10 @@ const STOCK_API = "https://script.google.com/macros/s/AKfycbz--QXl5yxlw_zdT1gtvz
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
 // Der Bestand und die Status werden aus dem Google Sheet geladen.
 const PRODUCTS = [
-  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", null], ["cf500", "500 g", null]] },
-  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", null], ["cs500", "500 g", null]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", null], ["fs500", "500 g", null]] },
-  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", null], ["wb500", "500 g", null]] },
+  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", 3.75], ["cf500", "500 g", 7.5]] },
+  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", 3.75], ["cs500", "500 g", 7.5]] },
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", 3.75], ["fs500", "500 g", 7.5]] },
+  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", 3.75], ["wb500", "500 g", 7.5]] },
   { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", null]] }
 ];
 /* ========================= */
@@ -281,7 +283,7 @@ PRODUCTS.forEach(p => {
     t.id = "tile-" + id;
     t.innerHTML =
       '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
-      '<div class="tl"><span class="size">' + size + "</span>" + (price != null ? '<span class="price">' + eur(price) + "</span>" : "") + "</div>" +
+      '<div class="tl"><span class="size">' + size + '</span><span class="price">' + (price != null ? eur(price) : "-- €") + '</span></div>' +
       '<span class="availability loading" id="stock-status-' + id + '" role="status">Bestand wird geladen</span>' +
       '<div class="ctl">' +
       '<button type="button" data-id="' + id + '" data-d="-1" aria-label="Eins weniger: ' + label + '">−</button>' +
@@ -403,6 +405,7 @@ $("pickup-fs").addEventListener("change", e => {
   document.querySelectorAll("#pickup-fs .opt").forEach(label => {
     label.classList.toggle("selected", label.contains(input) && input.checked);
   });
+  render();
 });
 
 $("products").addEventListener("click", e => {
@@ -424,13 +427,33 @@ $("products").addEventListener("click", e => {
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const bump = el => { if (el && !calm && el.animate) el.animate([{ transform: "scale(1.35)" }, { transform: "scale(1)" }], { duration: 200 }); };
 const chosen = () => items.filter(i => qty[i.id] > 0);
+const usesPickupLocker = () => {
+  const pickup = document.querySelector('input[name="pickup"]:checked');
+  return Boolean(pickup && pickup.value.startsWith("Abholschrank"));
+};
+const pickupFee = () => usesPickupLocker() ? 1 : 0;
+const knownSubtotal = (c = chosen()) => c.reduce((sum, item) => sum + (item.price == null ? 0 : item.price * qty[item.id]), 0);
 function total(c = chosen()) {
-  return c.length && c.every(i => i.price != null) ? c.reduce((s, i) => s + i.price * qty[i.id], 0) : null;
+  return c.length && c.every(i => i.price != null) ? knownSubtotal(c) + pickupFee() : null;
 }
 function render() {
   const c = chosen();
   const n = c.reduce((s, i) => s + qty[i.id], 0), t = total(c);
-  $("sum").innerHTML = n ? '<span class="cnt">' + n + "</span>" + (n === 1 ? "Glas" : "Gläser") + (t != null ? " · " + eur(t) : "") : "Noch nichts gewählt";
+  if (!n) {
+    $("sum").textContent = "Noch nichts gewählt";
+    return;
+  }
+  let priceText;
+  if (t != null) {
+    priceText = "Gesamt " + eur(t) + (pickupFee() ? " (inkl. " + eur(pickupFee()) + " Abholschrank)" : "");
+  } else {
+    const parts = [];
+    if (knownSubtotal(c) > 0) parts.push("Bekannte Zwischensumme " + eur(knownSubtotal(c)));
+    if (pickupFee()) parts.push("Abholschrank +" + eur(pickupFee()));
+    parts.push("Wabenhonig: -- € pro Stück");
+    priceText = parts.join(" · ");
+  }
+  $("sum").innerHTML = '<span class="cnt">' + n + "</span>" + (n === 1 ? "Glas" : "Gläser") + " · " + priceText;
 }
 
 const fmtDate = v => { const [y, m, d] = v.split("-"); return d + "." + m + "." + y; };
@@ -460,7 +483,10 @@ $("send").onclick = async () => {
   btn.disabled = true; btn.textContent = "Wird gesendet …";
   const body = { _subject: "Neue Honigbestellung von " + val("name"), _template: "table", _captcha: "false", _honey: $("hp").value, name: val("name"), email: val("email") };
   chosen().forEach(i => { body[i.label] = qty[i.id] + "×"; });
+  if (knownSubtotal() > 0) body["Bekannte Zwischensumme"] = eur(knownSubtotal());
+  if (pickupFee()) body["Abholschrank-Zuschlag"] = eur(pickupFee());
   if (t != null) body["Gesamt"] = eur(t);
+  else if (chosen().some(i => i.price == null)) body["Gesamt"] = "Noch offen (Wabenhonig: -- € pro Stück)";
   const pickup = document.querySelector('input[name="pickup"]:checked').value;
   body["Abholung"] = pickup;
   if ($("date").value) body["Wunschtermin"] = fmtDate($("date").value);
