@@ -247,13 +247,13 @@ body { padding-bottom: 32px; }
 // dann steht deine Mailadresse nirgends mehr im Quelltext.
 const FORM_ID = "9a142706317fe96d4dff834cbe088041";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
-// Verfügbarkeit je Glas: status = "available" | "few" | "soldout"; count = Restmenge als Zahl oder null ohne Mengenlimit.
+// Verfügbarkeit je Glas: status = "available" | "few" | "soldout".
 const PRODUCTS = [
-  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", null, { status: "available", count: null }], ["cf500", "500 g", null, { status: "available", count: null }]] },
-  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", null, { status: "available", count: null }], ["cs500", "500 g", null, { status: "available", count: null }]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", null, { status: "available", count: null }], ["fs500", "500 g", null, { status: "available", count: null }]] },
-  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", null, { status: "available", count: null }], ["wb500", "500 g", null, { status: "available", count: null }]] },
-  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", null]] }
+  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", null, { status: "available" }], ["cf500", "500 g", null, { status: "available" }]] },
+  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", null, { status: "available" }], ["cs500", "500 g", null, { status: "available" }]] },
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", null, { status: "available" }], ["fs500", "500 g", null, { status: "available" }]] },
+  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", null, { status: "few" }], ["wb500", "500 g", null, { status: "few" }]] },
+  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", 11, { status: "available" }]] }
 ];
 /* ========================= */
 
@@ -270,9 +270,8 @@ PRODUCTS.forEach(p => {
   g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
   p.sizes.forEach(([id, size, price, availability = {}]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
-    const count = Number.isInteger(availability.count) && availability.count >= 0 ? availability.count : null;
-    const status = count === 0 ? "soldout" : (availability.status || "available");
-    const statusLabels = { available: "Verfügbar", few: "Nur noch wenige", soldout: "Ausverkauft" };
+    const status = ["available", "few", "soldout"].includes(availability.status) ? availability.status : "available";
+    const statusLabels = { available: "Verfügbar", few: "Wenige verfügbar", soldout: "Ausverkauft" };
     items.push({ id, label, price });
     qty[id] = 0;
     const w = parseInt(size) > 300 ? 58 : 44;
@@ -282,12 +281,11 @@ PRODUCTS.forEach(p => {
     t.innerHTML =
       '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
       '<div class="tl"><span class="size">' + size + "</span>" + (price != null ? '<span class="price">' + eur(price) + "</span>" : "") + "</div>" +
-      '<span class="availability ' + status + '" role="status">' + statusLabels[status] + (count > 0 ? " · " + count + " verfügbar" : "") + "</span>" +
+      '<span class="availability ' + status + '" role="status">' + statusLabels[status] + "</span>" +
       '<div class="ctl">' +
       '<button type="button" data-id="' + id + '" data-d="-1" aria-label="Eins weniger: ' + label + '">−</button>' +
       '<output id="q-' + id + '">0</output>' +
-      '<button type="button" data-id="' + id + '" data-d="1" aria-label="Eins mehr: ' + label + '"' + (status === "soldout" || count === 0 ? " disabled" : "") + '>+</button></div>';
-    t.dataset.limit = count == null ? "20" : String(count);
+      '<button type="button" data-id="' + id + '" data-d="1" aria-label="Eins mehr: ' + label + '"' + (status === "soldout" ? " disabled" : "") + '>+</button></div>';
     t.dataset.soldout = String(status === "soldout");
     g.querySelector(".sizes").appendChild(t);
   });
@@ -307,11 +305,11 @@ $("products").addEventListener("click", e => {
   if (!b) return;
   const id = b.dataset.id;
   const tile = $("tile-" + id);
-  const limit = tile.dataset.soldout === "true" ? 0 : Number(tile.dataset.limit);
-  qty[id] = Math.max(0, Math.min(limit, qty[id] + Number(b.dataset.d)));
+  if (tile.dataset.soldout === "true" && Number(b.dataset.d) > 0) return;
+  qty[id] = Math.max(0, Math.min(20, qty[id] + Number(b.dataset.d)));
   $("q-" + id).textContent = qty[id];
   tile.classList.toggle("on", qty[id] > 0);
-  tile.querySelector('button[data-d="1"]').disabled = qty[id] >= limit;
+  tile.querySelector('button[data-d="1"]').disabled = tile.dataset.soldout === "true" || qty[id] >= 20;
   render();
   bump($("q-" + id)); bump(document.querySelector(".cnt"));
 });
