@@ -351,7 +351,8 @@ function reserveStock(order) {
       form.remove();
     };
     const onMessage = event => {
-      if (event.source !== frame.contentWindow || !event.data || typeof event.data.ok !== "boolean") return;
+      const trustedOrigin = event.origin === "https://script.google.com" || /^https:\/\/([a-z0-9-]+\.)*googleusercontent\.com$/.test(event.origin);
+      if (!trustedOrigin || !event.data || event.data.requestId !== order.orderId || typeof event.data.ok !== "boolean") return;
       cleanup();
       resolve(event.data);
     };

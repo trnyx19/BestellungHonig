@@ -55,15 +55,18 @@ function doGet(e) {
 
 function doPost(e) {
   let result;
+  let requestId = "";
   try {
     const payload = JSON.parse((e && e.parameter && e.parameter.payload) || "{}");
+    requestId = String(payload.orderId || "");
     result = reserveOrder_(payload);
   } catch (error) {
     result = { ok: false, message: error.message };
   }
 
+  result.requestId = requestId;
   const safeResult = JSON.stringify(result).replace(/</g, "\\u003c");
-  const html = "<!doctype html><meta charset=\"utf-8\"><script>parent.postMessage(" +
+  const html = "<!doctype html><meta charset=\"utf-8\"><script>top.postMessage(" +
     safeResult + ", '*');</script>";
   return HtmlService.createHtmlOutput(html)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
