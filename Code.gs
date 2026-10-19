@@ -43,7 +43,23 @@ function doGet(e) {
   }
 
   try {
-    const result = JSON.stringify({ ok: true, stock: readInventory_(), lowStockThreshold: LOW_STOCK_THRESHOLD });
+    const stock = readInventory_();
+    const orderId = String((e && e.parameter && e.parameter.orderId) || "");
+    let accepted;
+    if (orderId) {
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ORDERS_SHEET);
+      const rows = sheet && sheet.getLastRow() > 1
+        ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 8).getValues()
+        : [];
+      accepted = rows.some(function(row) { return String(row[0]) === orderId; });
+    }
+    const result = JSON.stringify({
+      ok: true,
+      accepted: accepted,
+      stock: stock,
+      lowStockThreshold: LOW_STOCK_THRESHOLD,
+      message: accepted === false ? "Die Bestellung wurde nicht im Bestellblatt gefunden." : ""
+    });
     return ContentService.createTextOutput(callback + "(" + result + ");")
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   } catch (error) {
@@ -54,22 +70,15 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  let result;
-  let requestId = "";
   try {
     const payload = JSON.parse((e && e.parameter && e.parameter.payload) || "{}");
-    requestId = String(payload.orderId || "");
-    result = reserveOrder_(payload);
+    reserveOrder_(payload);
+    return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (error) {
-    result = { ok: false, message: error.message };
-  }
-
-  result.requestId = requestId;
-  const safeResult = JSON.stringify(result).replace(/</g, "\\u003c");
-  const html = "<!doctype html><meta charset=\"utf-8\"><script>top.postMessage(" +
-    safeResult + ", '*');</script>";
-  return HtmlService.createHtmlOutput(html)
+    return HtmlService.createHtmlOutput("Bestellung konnte nicht verarbeitet werden.")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
 }
 
 function readInventory_() {
