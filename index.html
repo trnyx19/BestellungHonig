@@ -347,28 +347,41 @@ function reserveStock(order) {
     form.appendChild(input);
     document.body.appendChild(form);
 
+    let pollTimer;
     const cleanup = () => {
-      frame.removeEventListener("load", onLoad);
+      clearTimeout(pollTimer);
       clearTimeout(timeout);
       form.remove();
     };
-    const onLoad = async () => {
+    const checkOrder = async () => {
       try {
         const result = await loadStock(order.orderId);
-        if (!result.accepted) throw new Error(result.message || "Die Bestellung wurde nicht gespeichert.");
-        cleanup();
-        resolve(result);
+        if (result.accepted) {
+          cleanup();
+          resolve(result);
+          return;
+        }
       } catch (error) {
-        cleanup();
-        reject(error);
+        if (Date.now() >= deadline) {
+          cleanup();
+          reject(error);
+          return;
+        }
       }
+      if (Date.now() >= deadline) {
+        cleanup();
+        reject(new Error("Die Bestellung wurde nicht im Bestellblatt gefunden. Prüfe das Sheet, bevor du erneut bestellst."));
+        return;
+      }
+      pollTimer = setTimeout(checkOrder, 1000);
     };
+    const deadline = Date.now() + 30000;
     const timeout = setTimeout(() => {
       cleanup();
-      reject(new Error("Der Bestand antwortet gerade nicht. Bitte prüfe die Verbindung und versuche es erneut."));
+      reject(new Error("Die Bestätigung dauert zu lange. Prüfe das Bestellblatt, bevor du erneut bestellst."));
     }, 30000);
-    frame.addEventListener("load", onLoad, { once: true });
     form.submit();
+    checkOrder();
   });
 }
 
