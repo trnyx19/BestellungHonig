@@ -1,4 +1,5 @@
 const LOW_STOCK_THRESHOLD = 6;
+const LOW_STOCK_TELEGRAM_THRESHOLD = 3;
 const INVENTORY_SHEET = "Bestand";
 const ORDERS_SHEET = "Bestellungen";
 
@@ -87,8 +88,9 @@ function doPost(e) {
   try {
     const payload = JSON.parse((e && e.parameter && e.parameter.payload) || "{}");
     orderId = String(payload.orderId || "");
-    reserveOrder_(payload);
+    const result = reserveOrder_(payload);
     if (orderId) CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: true }), 300);
+    sendLowStockAlerts_(result.lowStockAlerts || []);
     return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (error) {
@@ -98,6 +100,71 @@ function doPost(e) {
     return HtmlService.createHtmlOutput("Bestellung konnte nicht verarbeitet werden.")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
+}
+
+function logTelegramChatId() {
+  const token = PropertiesService.getScriptProperties().getProperty("TELEGRAM_BOT_TOKEN");
+  if (!token) throw new Error("Lege zuerst TELEGRAM_BOT_TOKEN in den Script-Eigenschaften an.");
+
+  const response = UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/getUpdates", {
+    muteHttpExceptions: true
+  });
+  const result = JSON.parse(response.getContentText());
+  if (!result.ok) throw new Error("Telegram konnte Updates nicht lesen. Prüfe den Bot-Token.");
+
+  const chats = {};
+  result.result.forEach(function(update) {
+    const message = update.message || update.edited_message || update.channel_post;
+    if (message && message.chat) {
+      chats[String(message.chat.id)] = message.chat.title || message.chat.username || message.chat.first_name || "Chat";
+    }
+  });
+  const ids = Object.keys(chats);
+  if (!ids.length) {
+    console.log("Keine Chats gefunden. Sende dem Bot zuerst /start und führe die Funktion erneut aus.");
+    return;
+  }
+  ids.forEach(function(id) { console.log(chats[id] + ": " + id); });
+}
+
+function sendCurrentLowStockAlerts() {
+  const inventory = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INVENTORY_SHEET);
+  if (!inventory || inventory.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
+  const rows = inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues();
+  const alerts = rows.map(function(row) {
+    return { name: String(row[1]), size: String(row[2]), count: Number(row[3]) };
+  }).filter(function(item) {
+    return Number.isInteger(item.count) && item.count >= 0 && item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
+  });
+  sendLowStockAlerts_(alerts);
+  return alerts.length;
+}
+
+function sendLowStockAlerts_(alerts) {
+  if (!alerts.length) return;
+  const properties = PropertiesService.getScriptProperties();
+  const token = properties.getProperty("TELEGRAM_BOT_TOKEN");
+  const chatId = properties.getProperty("TELEGRAM_CHAT_ID");
+  if (!token || !chatId) {
+    console.warn("Telegram-Warnung übersprungen: TELEGRAM_BOT_TOKEN oder TELEGRAM_CHAT_ID fehlt.");
+    return;
+  }
+
+  alerts.forEach(function(item) {
+    const message = "Lagerwarnung: " + item.name + " (" + item.size + ") hat nur noch " + item.count + ".";
+    try {
+      const response = UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify({ chat_id: chatId, text: message }),
+        muteHttpExceptions: true
+      });
+      const result = JSON.parse(response.getContentText());
+      if (!result.ok) throw new Error("Telegram hat die Nachricht abgelehnt.");
+    } catch (error) {
+      console.error("Telegram-Lagerwarnung konnte nicht gesendet werden: " + error.message);
+    }
+  });
 }
 
 function readInventory_() {
@@ -133,7 +200,7 @@ function reserveOrder_(payload) {
       ? orders.getRange(2, 1, orders.getLastRow() - 1, 8).getValues()
       : [];
     const previous = orderRows.find(function(row) { return String(row[0]) === orderId; });
-    if (previous) return { ok: true, duplicate: true, stock: readInventory_(), lowStockThreshold: LOW_STOCK_THRESHOLD };
+    if (previous) return { ok: true, duplicate: true, stock: readInventory_(), lowStockThreshold: LOW_STOCK_THRESHOLD, lowStockAlerts: [] };
 
     const dataRange = inventory.getRange(2, 1, inventory.getLastRow() - 1, 4);
     const rows = dataRange.getValues();
@@ -169,6 +236,15 @@ function reserveOrder_(payload) {
       const index = item.product.row - 2;
       nextRows[index][3] = item.product.stock - item.quantity;
     });
+    const lowStockAlerts = purchases.map(function(item) {
+      return {
+        name: item.product.name,
+        size: item.product.size,
+        count: item.product.stock - item.quantity
+      };
+    }).filter(function(item) {
+      return item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
+    });
 
     dataRange.setValues(nextRows);
     try {
@@ -192,7 +268,7 @@ function reserveOrder_(payload) {
       throw error;
     }
 
-    return { ok: true, stock: readInventory_(), lowStockThreshold: LOW_STOCK_THRESHOLD };
+    return { ok: true, stock: readInventory_(), lowStockThreshold: LOW_STOCK_THRESHOLD, lowStockAlerts: lowStockAlerts };
   } finally {
     lock.releaseLock();
   }
