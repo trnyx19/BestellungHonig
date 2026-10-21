@@ -256,11 +256,11 @@ const STOCK_API = "https://script.google.com/macros/s/AKfycbz--QXl5yxlw_zdT1gtvz
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
 // Der Bestand und die Status werden aus dem Google Sheet geladen.
 const PRODUCTS = [
-  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", 3.75], ["cf500", "500 g", 7.5]] },
-  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", 3.75], ["cs500", "500 g", 7.5]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", 3.75], ["fs500", "500 g", 7.5]] },
-  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", 3.75], ["wb500", "500 g", 7.5]] },
-  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g", honey: "#F7EDC4", icon: "comb", sizes: [["wh1", "Stück", null]] }
+  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", 3], ["cf500", "500 g", 7]] },
+  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", 3], ["cs500", "500 g", 7]] },
+  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", 3], ["fs500", "500 g", 7]] },
+  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", 3], ["wb500", "500 g", 7]] },
+  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g · 3,00 € je 100 g", honey: "#F7EDC4", icon: "comb", pricePer100g: 3, sizes: [["wh1", "Stück", null]] }
 ];
 /* ========================= */
 
@@ -285,7 +285,7 @@ PRODUCTS.forEach(p => {
     t.id = "tile-" + id;
     t.innerHTML =
       '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
-      '<div class="tl"><span class="size">' + size + '</span><span class="price">' + (price != null ? eur(price) : "-- €") + '</span></div>' +
+      '<div class="tl"><span class="size">' + size + '</span><span class="price">' + (price != null ? eur(price) : p.pricePer100g != null ? eur(p.pricePer100g) + " / 100 g" : "-- €") + '</span></div>' +
       '<span class="availability loading" id="stock-status-' + id + '" role="status">Bestand wird geladen</span>' +
       '<div class="ctl">' +
       '<button type="button" data-id="' + id + '" data-d="-1" aria-label="Eins weniger: ' + label + '">−</button>' +
@@ -452,7 +452,7 @@ function render() {
     const parts = [];
     if (knownSubtotal(c) > 0) parts.push("Bekannte Zwischensumme " + eur(knownSubtotal(c)));
     if (pickupFee()) parts.push("Abholschrank +" + eur(pickupFee()));
-    parts.push("Wabenhonig: -- € pro Stück");
+    parts.push("Wabenhonig: 3,00 € pro 100 g; Stückpreis abhängig vom Gewicht");
     priceText = parts.join(" · ");
   }
   $("sum").innerHTML = '<span class="cnt">' + n + "</span>" + (n === 1 ? "Glas" : "Gläser") + " · " + priceText;
@@ -488,7 +488,7 @@ $("send").onclick = async () => {
   if (knownSubtotal() > 0) body["Bekannte Zwischensumme"] = eur(knownSubtotal());
   if (pickupFee()) body["Abholschrank-Zuschlag"] = eur(pickupFee());
   if (t != null) body["Gesamt"] = eur(t);
-  else if (chosen().some(i => i.price == null)) body["Gesamt"] = "Noch offen (Wabenhonig: -- € pro Stück)";
+  else if (chosen().some(i => i.price == null)) body["Gesamt"] = "Noch offen (Wabenhonig: 3,00 € je 100 g; Stückpreis abhängig vom Gewicht)";
   const pickup = document.querySelector('input[name="pickup"]:checked').value;
   body["Abholung"] = pickup;
   if ($("date").value) body["Wunschtermin"] = fmtDate($("date").value);
