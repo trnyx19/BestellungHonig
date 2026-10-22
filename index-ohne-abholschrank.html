@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
 <title>Honig bestellen</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -207,11 +208,11 @@ body { padding-bottom: 32px; }
     <section class="step">
       <h2><span style="display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:12px!important;white-space:nowrap!important;"><span class="n">3</span><span style="color:#FFE337!important;">Deine Angaben</span></span></h2>
       <div class="two">
-        <div><label class="f" for="name">Vorname</label><input id="name" type="text" autocomplete="given-name"></div>
-        <div><label class="f" for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="email"></div>
+        <div><label class="f" for="name">Vorname</label><input id="name" type="text" autocomplete="given-name" maxlength="100"></div>
+        <div><label class="f" for="email">E-Mail-Adresse</label><input id="email" type="email" autocomplete="email" maxlength="254"></div>
       </div>
       <label class="f" for="msg">Sonstige Wünsche (optional)</label>
-      <textarea id="msg"></textarea>
+      <textarea id="msg" maxlength="500"></textarea>
       <input type="text" id="hp" tabindex="-1" autocomplete="off" style="display:none" aria-hidden="true">
     </section>
   </form>
@@ -237,7 +238,7 @@ body { padding-bottom: 32px; }
   <footer class="foot">
     <img id="logo2" width="84" height="84" alt="" aria-hidden="true">
     <p><b class="lob">Landimkerei Diezinger</b><br>regionale Qualität aus Täfertingen</p>
-    <a class="link" href="https://linktr.ee/landimkereidiezinger" target="_blank" rel="noopener">Mehr von uns auf Linktree</a>
+    <a class="link" href="https://linktr.ee/landimkereidiezinger" target="_blank" rel="noopener noreferrer">Mehr von uns auf Linktree</a>
     <figure class="qr">
       <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbwAAAG8AQMAAACffoKcAAAABlBMVEX/4zeCIEUyqDFHAAAB5ElEQVR42u2bQW4DIQxF7Sp7zw16/2PNDeAE7gIGw2SyaaXixfuKomTCUyTry7INiCCEEEIIIZRePlSkvS/Py7JARES+fvtXgIB/A6s2tW/6HXbtD9cFRBVwIzhyph7iRcTc3VXV3W8LiCpgEtCLSFU9RETEXPX6THAAk4HNmX6qHuKnijnBAUwAvsKis12bP6u6iD8tIKqA20DrXX7LqH5qLwaaY8uygKgC7gDlsV7tpvWbP4kq4H6vdn/a5Uzz9hq9f0utYsxXAfd7dRh1TP7lthcwTEtUATPk1RKfw5nmc21AVAE351WJMjWelPhKXgVM4dUPiXQZrhr7VoApvBo16joHmFsqzq4Abvfq3EaNLPpeA+BVwFRzgHkgMNt4GJioAm7OqyVeYdGRS81HTUtUAXd61TxGUua3gUBsBDCzAkxQAzw2Vj21XtmVOQBghhpgbrJG7x+zLLwKmAS09TpVjQOAfupbY0VUAbOcsxq2nLst7gYCpqhXb/dY10Mst0MCRBUw0T1Wva6uXMVAv3JVuccKmGIOEN3T2Pq39WQgvRVgJq/GcNWWXYB1M4uoAv4z+Pr0g4p4VZ/LABGvB1EF3J5XlyGAPdwFoLcCTDcHKKt7p7EAXgXc7lWEEEIIIYRS6gfjGiSDxtoXNQAAAABJRU5ErkJggg==" width="156" height="156" alt="QR-Code zum Linktree der Landimkerei Diezinger">
       <figcaption>Scannen und alles von uns entdecken</figcaption>
@@ -461,6 +462,11 @@ function fail(msg, el) {
   return false;
 }
 function ready() {
+  if (val("hp")) return fail("Die Bestellung konnte nicht geprüft werden.", $("products"));
+  if (Date.now() - PAGE_OPENED_AT < 2500) return fail("Bitte prüfe deine Angaben kurz und versuch es erneut.", $("send"));
+  let lastSubmitted = 0;
+  try { lastSubmitted = Number(sessionStorage.getItem(SUBMIT_COOLDOWN_KEY)) || 0; } catch (error) {}
+  if (lastSubmitted && Date.now() - lastSubmitted < SUBMIT_COOLDOWN_MS) return fail("Bitte warte kurz, bevor du eine weitere Bestellung absendest.", $("send"));
   if (!stockReady) return fail("Die Verfügbarkeit konnte nicht geladen werden. Bitte versuch es später erneut.", $("products"));
   if (!chosen().length) return fail("Wähl zuerst mindestens ein Glas aus.", $("products"));
   if (!document.querySelector('input[name="pickup"]:checked')) return fail("Bitte wähl aus, wie du abholen willst.", $("pickup-fs"));
@@ -471,6 +477,9 @@ function ready() {
 }
 
 let pendingOrderId = null;
+const PAGE_OPENED_AT = Date.now();
+const SUBMIT_COOLDOWN_MS = 15000;
+const SUBMIT_COOLDOWN_KEY = "honey-order-submitted-at";
 const newOrderId = () => window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2);
 
 $("send").onclick = async () => {
@@ -505,6 +514,7 @@ $("send").onclick = async () => {
     }
     pendingOrderId = null;
     applyStock(result.stock, result.lowStockThreshold);
+    try { sessionStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now())); } catch (error) {}
 
     let emailWarning = "";
     try {
