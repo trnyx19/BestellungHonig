@@ -137,6 +137,8 @@ body { padding-bottom: 32px; }
 #done { text-align: center; padding: 28px 22px 30px; }
 #done h2 { font-size: 2.6rem; margin: 8px 0 10px; }
 #done p { margin: 0 auto; max-width: 36ch; }
+    #done .technical-message { font-size: 1.1rem; line-height: 1.6; }
+    #done .technical-message a { display: inline-block; margin-top: 6px; color: #822045; font-size: 1.08em; font-weight: 700; text-decoration: none; }
 .done-quantity { display: flex; align-items: center; justify-content: center; font-weight: 600; }
 </style>
 </head>
@@ -524,7 +526,7 @@ $("send").onclick = async () => {
       const d = await r.json();
       if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
     } catch (error) {
-      emailWarning = "Leider haben wir gerade technische Probleme, wir sind bereits dabei diese zu lösen. Wir haben deine Bestellung aber trotzdem erhalten, bitte bestelle nicht noch einmal. Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist. Bei Problemen oder Anmerkungen bitte sende eine Email an unsere Bestellungsemail: landimkereidiezinger@gmail.com";
+      emailWarning = "Leider gibt es technische Probleme, die wir bereits beheben. Deine Bestellung ist trotzdem eingegangen,bitte nicht erneut bestellen. Wir informieren dich per Mail, sobald sie abholbereit ist. Bei Fragen oder Anmerkungen: landimkereidiezinger@gmail.com";
     }
     $("f").hidden = true; $("bar").hidden = true;
     const orderedCount = chosen().reduce((sum, item) => sum + qty[item.id], 0);
@@ -532,7 +534,9 @@ $("send").onclick = async () => {
     $("done-count-label").textContent = orderedCount === 1 ? "Produkt bestellt" : "Produkte bestellt";
     $("done").hidden = false;
     if (emailWarning) {
-      $("done").querySelector("p:not(.done-quantity)").textContent = "Leider haben wir gerade technische Probleme, wir sind bereits dabei diese zu lösen. Wir haben deine Bestellung aber trotzdem erhalten, bitte bestelle nicht noch einmal. Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist. Bei Problemen oder Anmerkungen bitte sende eine Email an unsere Bestellungsemail: landimkereidiezinger@gmail.com";
+      const message = $("done").querySelector("p:not(.done-quantity)");
+      message.classList.add("technical-message");
+      message.innerHTML = 'Leider gibt es technische Probleme, die wir bereits beheben. Deine Bestellung ist trotzdem eingegangen, bitte nicht erneut bestellen. Wir informieren dich per Mail, sobald sie abholbereit ist.<br><br>Bei Fragen oder Anmerkungen:<br><a href="mailto:landimkereidiezinger@gmail.com">landimkereidiezinger@gmail.com</a>';
     }
     $("done").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
