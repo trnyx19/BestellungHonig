@@ -126,6 +126,8 @@ body { padding-bottom: 32px; }
 #status:empty { display: none; }
 .bar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sum { font-weight: 600; line-height: 1.25; }
+.sum-block { min-width: 0; }
+.payment-note { display: block; margin-top: 4px; font: .82rem/1.35 system-ui, sans-serif; }
 .send, .again { font: 1.45rem Lobster, cursive; padding: 9px 26px; border-radius: 999px; border: 0; background: var(--gold); color: var(--b); cursor: pointer; }
 .send:disabled { opacity: .6; cursor: wait; }
 .again { background: var(--gold); color: var(--b); margin-top: 16px; }
@@ -218,7 +220,7 @@ body { padding-bottom: 32px; }
     <div class="bar-in">
       <p id="status" role="status"></p>
       <div class="bar-row">
-        <div class="sum" id="sum" aria-live="polite"></div>
+        <div class="sum-block"><div class="sum" id="sum" aria-live="polite"></div><small class="payment-note">Aktuell ist nur Barzahlung möglich.</small></div>
         <button class="send" id="send" type="button">Bestellung absenden</button>
       </div>
     </div>
