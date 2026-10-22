@@ -251,7 +251,7 @@ body { padding-bottom: 32px; }
 /* ===== Hier anpassen ===== */
 // Nach der Aktivierung schickt dir FormSubmit eine Zufalls-ID. Ersetze die Mailadresse hier durch diese ID,
 // dann steht deine Mailadresse nirgends mehr im Quelltext.
-const FORM_ID = "landimkereidiezinger@gmail.com";
+const FORM_ID = "9a142706317fe96d4dff834cbe088041";
 // Nach der Bereitstellung des Apps-Script-Web-App-Endpunkts hier die URL eintragen.
 const STOCK_API = "https://script.google.com/macros/s/AKfycbz--QXl5yxlw_zdT1gtvzCSiKuvSQ7Pk12C3P_ZSzG_hzEteA4OsoTrlB323yLAUHL-iw/exec";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
@@ -450,7 +450,7 @@ function render() {
     parts.push("Wabenhonig: 3,00 € pro 100 g; Stückpreis abhängig vom Gewicht");
     priceText = parts.join(" · ");
   }
-  $("sum").innerHTML = '<span class="cnt">' + n + "</span>" + (n === 1 ? "Glas" : "Gläser") + " · " + priceText;
+  $("sum").innerHTML = '<span class="cnt">' + n + "</span>" + (n === 1 ? "Produkt" : "Produkte") + " · " + priceText;
 }
 
 const fmtDate = v => { const [y, m, d] = v.split("-"); return d + "." + m + "." + y; };
@@ -524,7 +524,7 @@ $("send").onclick = async () => {
       const d = await r.json();
       if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
     } catch (error) {
-      emailWarning = "Leider haben wir gerade technische Probleme, wir sind bereits dabei diese zu lösen. Wir haben deine Bestellung aber trotzdem erhalten, bitte bestelle nicht noch einmal. Bei Problemen oder Anmerkungen bitte sende eine Email an unsere Bestellungsemail: landimkereidiezinger@gmail.com";
+      emailWarning = "Leider haben wir gerade technische Probleme, wir sind bereits dabei diese zu lösen. Wir haben deine Bestellung aber trotzdem erhalten, bitte bestelle nicht noch einmal. Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist. Bei Problemen oder Anmerkungen bitte sende eine Email an unsere Bestellungsemail: landimkereidiezinger@gmail.com";
     }
     $("f").hidden = true; $("bar").hidden = true;
     const orderedCount = chosen().reduce((sum, item) => sum + qty[item.id], 0);
@@ -532,7 +532,7 @@ $("send").onclick = async () => {
     $("done-count-label").textContent = orderedCount === 1 ? "Produkt bestellt" : "Produkte bestellt";
     $("done").hidden = false;
     if (emailWarning) {
-      $("done").querySelector("p:not(.done-quantity)").textContent = "Leider haben wir gerade technische Probleme, wir sind bereits dabei diese zu lösen. Wir haben deine Bestellung aber trotzdem erhalten, bitte bestelle nicht noch einmal. Bei Problemen oder Anmerkungen bitte sende eine Email an unsere Bestellungsemail: landimkereidiezinger@gmail.com;
+      $("done").querySelector("p:not(.done-quantity)").textContent = "Leider haben wir gerade technische Probleme, wir sind bereits dabei diese zu lösen. Wir haben deine Bestellung aber trotzdem erhalten, bitte bestelle nicht noch einmal. Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist. Bei Problemen oder Anmerkungen bitte sende eine Email an unsere Bestellungsemail: landimkereidiezinger@gmail.com";
     }
     $("done").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
