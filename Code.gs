@@ -93,7 +93,11 @@ function doPost(e) {
     const result = reserveOrder_(payload);
     if (orderId) CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: true }), 300);
     if (!result.duplicate) {
-      sendNewOrderTelegram_(result.orderDetails);
+      try {
+        sendNewOrderTelegram_(result.orderDetails);
+      } catch (telegramError) {
+        console.error("Telegram-Bestellmeldung konnte nicht erstellt werden: " + telegramError.message);
+      }
       sendLowStockAlerts_(result.lowStockAlerts || []);
       try {
         sendNewOrderEmail_(result.orderDetails);
@@ -164,10 +168,7 @@ function sendNewOrderTelegram_(order) {
   const lines = [
     "Neue Honigbestellung",
     "Name: " + order.name,
-    "Artikel:",
-    order.items.map(function(item) {
-      return "- " + item.quantity + " x " + item.name + " (" + item.size + ")";
-    }).join("\n"),
+    "Artikel: " + order.itemSummary,
     "Abholung: " + (order.pickup || "Keine Angabe")
   ];
   if (order.date) lines.push("Wunschtermin: " + order.date);
