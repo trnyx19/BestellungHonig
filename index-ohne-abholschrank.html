@@ -526,7 +526,8 @@ $("send").onclick = async () => {
       const d = await r.json();
       if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
     } catch (error) {
-      emailWarning = "Leider gibt es technische Probleme, die wir bereits beheben. Deine Bestellung ist trotzdem eingegangen,bitte nicht erneut bestellen. Wir informieren dich per Mail, sobald sie abholbereit ist. Bei Fragen oder Anmerkungen: landimkereidiezinger.bestellung@gmx.de";
+      emailWarning = error && error.message ? error.message : String(error);
+      console.error("FormSubmit-Fehler:", error);
     }
     $("f").hidden = true; $("bar").hidden = true;
     const orderedCount = chosen().reduce((sum, item) => sum + qty[item.id], 0);
@@ -537,6 +538,9 @@ $("send").onclick = async () => {
       const message = $("done").querySelector("p:not(.done-quantity)");
       message.classList.add("technical-message");
       message.innerHTML = 'Leider gibt es technische Probleme, die wir bereits beheben. Deine Bestellung ist trotzdem eingegangen, bitte nicht erneut bestellen. Wir informieren dich per Mail, sobald sie abholbereit ist.<br><br>Bei Fragen oder Anmerkungen:<br><a href="mailto:landimkereidiezinger.bestellung@gmx.de">landimkereidiezinger.bestellung@gmx.de</a>';
+      const detail = document.createElement("small");
+      detail.textContent = "FormSubmit-Fehler: " + emailWarning;
+      message.append(document.createElement("br"), detail);
     }
     $("done").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
