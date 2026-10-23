@@ -3,6 +3,7 @@ const LOW_STOCK_TELEGRAM_THRESHOLD = 3;
 const INVENTORY_SHEET = "Bestand";
 const ORDERS_SHEET = "Bestellungen";
 const ORDER_NOTIFICATION_EMAIL = "landimkereidiezinger.bestellung@gmx.de";
+const ORDER_SENDER_NAME = "Neue Bestellung";
 
 const INITIAL_PRODUCTS = [
   ["cf250", "Cremiger Honig Frühling", "250 g", 10],
@@ -188,6 +189,7 @@ function sendNewOrderEmail_(order) {
 
   MailApp.sendEmail({
     to: ORDER_NOTIFICATION_EMAIL,
+    name: ORDER_SENDER_NAME,
     replyTo: order.email,
     subject: "Neue Honigbestellung von " + order.name.replace(/[\r\n]/g, " "),
     body: lines.join("\n")
@@ -205,6 +207,7 @@ function testOrderNotifications() {
   try {
     MailApp.sendEmail({
       to: ORDER_NOTIFICATION_EMAIL,
+      name: ORDER_SENDER_NAME,
       subject: "TEST - Bestellbenachrichtigung",
       body: "Dies ist eine Testmail aus Apps Script. Es wurde keine Bestellung angelegt. Test-ID: " + testId
     });
