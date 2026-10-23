@@ -96,7 +96,7 @@ input:focus, textarea:focus { background: var(--card) !important; }
 .hero h1 { animation: rise .6s both; }
 .hero p { animation: rise .6s .12s both; }
 .hint { animation: rise .6s .24s both; }
-.cnt { display: inline-grid; place-items: center; width: 34px; height: 38px; margin-right: 8px; vertical-align: middle; background: var(--y); color: var(--b); font: 1.25rem Lobster, cursive; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.cnt { display: inline-grid; place-items: center; width: 34px; height: 38px; margin-right: 8px; vertical-align: middle; background: #822045; color: var(--y); font: 1.25rem Lobster, cursive; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
 .hexrow { display: flex; justify-content: center; gap: 10px; margin: 6px 0 0; }
 .hexrow i { width: 22px; height: 25px; background: var(--gold); opacity: .95; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
 .hexrow i:nth-child(2) { translate: 0 12px; }
@@ -128,6 +128,8 @@ body { padding-bottom: 32px; }
 #status:empty { display: none; }
 .bar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sum { font-weight: 600; line-height: 1.25; }
+.sum-block { min-width: 0; }
+.payment-note { display: block; margin-top: 4px; font: .82rem/1.35 system-ui, sans-serif; }
 .send, .again { font: 1.45rem Lobster, cursive; padding: 9px 26px; border-radius: 999px; border: 0; background: var(--gold); color: var(--b); cursor: pointer; }
 .send:disabled { opacity: .6; cursor: wait; }
 .again { background: var(--gold); color: var(--b); margin-top: 16px; }
@@ -136,6 +138,9 @@ body { padding-bottom: 32px; }
 #done { text-align: center; padding: 28px 22px 30px; }
 #done h2 { font-size: 2.6rem; margin: 8px 0 10px; }
 #done p { margin: 0 auto; max-width: 36ch; }
+  #done .technical-message { font-size: 1.1rem; line-height: 1.6; max-width: 48ch; }
+  #done .technical-message a { display: inline-block; margin-top: 6px; color: #822045; font-size: 1.08em; font-weight: 700; text-decoration: none; }
+.done-quantity { display: flex; align-items: center; justify-content: center; font-weight: 600; margin-bottom: 4px !important; }
 </style>
 </head>
 <body>
@@ -156,7 +161,7 @@ body { padding-bottom: 32px; }
   <symbol id="comb" viewBox="0 0 100 90">
     <defs>
       <pattern id="comb-board-pattern" width="12.12" height="14" patternUnits="userSpaceOnUse">
-        <path d="M6.06 0 12.12 3.5V10.5L6.06 14 0 10.5V3.5Z" fill="none" stroke="#6B6558" stroke-width=".55" opacity=".35"/>
+        <path d="M6.06 0 12.12 3.5V10.5L6.06 14 0 10.5V3.5Z" fill="none" stroke="#FFE7AA" stroke-width=".55" opacity=".45"/>
       </pattern>
       <pattern id="comb-cell-pattern" width="8.6" height="10" patternUnits="userSpaceOnUse">
         <rect width="8.6" height="10" fill="#D9922A"/>
@@ -222,7 +227,7 @@ body { padding-bottom: 32px; }
     <div class="bar-in">
       <p id="status" role="status"></p>
       <div class="bar-row">
-        <div class="sum" id="sum" aria-live="polite"></div>
+        <div class="sum-block"><div class="sum" id="sum" aria-live="polite"></div><small class="payment-note">Aktuell ist nur Barzahlung möglich.</small></div>
         <button class="send" id="send" type="button">Bestellung absenden</button>
       </div>
     </div>
@@ -231,6 +236,7 @@ body { padding-bottom: 32px; }
   <section class="card" id="done" hidden>
     <svg class="jar" width="120" viewBox="0 0 100 90" aria-hidden="true" style="margin:0 auto"><use href="#jar"/></svg>
     <h2>Danke!</h2>
+    <p class="done-quantity" role="status"><span class="cnt" id="done-count"></span><span id="done-count-label"></span></p>
     <p>Vielen Dank für deine Bestellung! Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist! Falls du deine Bestellung am Abholschrank abholst, ist eine Anleitung im Anhang.</p>
     <button class="again" type="button" onclick="location.reload()">Neue Bestellung</button>
   </section>
@@ -249,9 +255,6 @@ body { padding-bottom: 32px; }
 
 <script>
 /* ===== Hier anpassen ===== */
-// Nach der Aktivierung schickt dir FormSubmit eine Zufalls-ID. Ersetze die Mailadresse hier durch diese ID,
-// dann steht deine Mailadresse nirgends mehr im Quelltext.
-const FORM_ID = "9a142706317fe96d4dff834cbe088041";
 // Nach der Bereitstellung des Apps-Script-Web-App-Endpunkts hier die URL eintragen.
 const STOCK_API = "https://script.google.com/macros/s/AKfycbz--QXl5yxlw_zdT1gtvzCSiKuvSQ7Pk12C3P_ZSzG_hzEteA4OsoTrlB323yLAUHL-iw/exec";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
@@ -490,18 +493,9 @@ const newOrderId = () => window.crypto && crypto.randomUUID ? crypto.randomUUID(
 
 $("send").onclick = async () => {
   if (!ready()) return;
-  const btn = $("send"), t = total();
+  const btn = $("send");
   btn.disabled = true; btn.textContent = "Wird gesendet …";
-  const body = { _subject: "Neue Honigbestellung von " + val("name"), _template: "table", _captcha: "false", _honey: $("hp").value, name: val("name"), email: val("email") };
-  chosen().forEach(i => { body[i.label] = qty[i.id] + "×"; });
-  if (knownSubtotal() > 0) body["Bekannte Zwischensumme"] = eur(knownSubtotal());
-  if (pickupFee()) body["Abholschrank-Zuschlag"] = eur(pickupFee());
-  if (t != null) body["Gesamt"] = eur(t);
-  else if (chosen().some(i => i.price == null)) body["Gesamt"] = "Noch offen (Wabenhonig: 3,00 € je 100 g; Stückpreis abhängig vom Gewicht)";
   const pickup = document.querySelector('input[name="pickup"]:checked').value;
-  body["Abholung"] = pickup;
-  if ($("date").value) body["Wunschtermin"] = fmtDate($("date").value);
-  if (val("msg")) body["Sonstige Wünsche"] = val("msg");
   try {
     if (!pendingOrderId) pendingOrderId = newOrderId();
     const result = await reserveStock({
@@ -523,19 +517,11 @@ $("send").onclick = async () => {
     applyStock(result.stock, result.lowStockThreshold);
     try { sessionStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now())); } catch (error) {}
 
-    let emailWarning = "";
-    try {
-      const r = await fetch("https://formsubmit.co/ajax/" + FORM_ID, {
-        method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(body)
-      });
-      const d = await r.json();
-      if (!r.ok || String(d.success) === "false") throw new Error(d.message || "Fehler");
-    } catch (error) {
-      emailWarning = "Deine Bestellung wurde gespeichert. Die E-Mail-Benachrichtigung konnte jedoch nicht gesendet werden. Bitte kontaktiere uns zur Sicherheit über unseren Linktree.";
-    }
     $("f").hidden = true; $("bar").hidden = true;
+    const orderedCount = chosen().reduce((sum, item) => sum + qty[item.id], 0);
+    $("done-count").textContent = orderedCount;
+    $("done-count-label").textContent = orderedCount === 1 ? "Produkt bestellt" : "Produkte bestellt";
     $("done").hidden = false;
-    if (emailWarning) $("done").querySelector("p").textContent = emailWarning;
     $("done").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     $("status").textContent = err && err.message ? err.message : "Das Senden hat nicht geklappt. Versuch es bitte nochmal.";

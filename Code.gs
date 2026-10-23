@@ -2,6 +2,7 @@ const LOW_STOCK_THRESHOLD = 6;
 const LOW_STOCK_TELEGRAM_THRESHOLD = 3;
 const INVENTORY_SHEET = "Bestand";
 const ORDERS_SHEET = "Bestellungen";
+const ORDER_NOTIFICATION_EMAIL = "landimkereidiezinger.bestellung@gmx.de";
 
 const INITIAL_PRODUCTS = [
   ["cf250", "Cremiger Honig Frühling", "250 g", 10],
@@ -91,8 +92,14 @@ function doPost(e) {
     const result = reserveOrder_(payload);
     if (orderId) CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: true }), 300);
     if (!result.duplicate) {
-      sendNewOrderTelegram_(result.telegramOrder);
+      sendNewOrderTelegram_(result.orderDetails);
       sendLowStockAlerts_(result.lowStockAlerts || []);
+      try {
+        sendNewOrderEmail_(result.orderDetails);
+      } catch (emailError) {
+        console.error("Bestell-E-Mail konnte nicht gesendet werden: " + emailError.message);
+        sendTelegramMessage_("Bestell-E-Mail konnte nicht gesendet werden. Bestell-ID: " + orderId + ". Fehler: " + emailError.message);
+      }
     }
     return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -164,6 +171,31 @@ function sendNewOrderTelegram_(order) {
   ];
   if (order.date) lines.push("Wunschtermin: " + order.date);
   sendTelegramMessage_(lines.join("\n"));
+}
+
+function sendNewOrderEmail_(order) {
+  const lines = [
+    "Neue Honigbestellung",
+    "Bestell-ID: " + order.orderId,
+    "Zeitpunkt: " + Utilities.formatDate(order.timestamp, Session.getScriptTimeZone(), "dd.MM.yyyy HH:mm:ss"),
+    "Name: " + order.name,
+    "E-Mail: " + order.email,
+    "Artikel: " + order.itemSummary,
+    "Abholung: " + (order.pickup || "Keine Angabe"),
+    "Wunschtermin: " + (order.date || "Keine Angabe"),
+    "Wünsche: " + (order.note || "Keine Angabe")
+  ];
+
+  MailApp.sendEmail({
+    to: ORDER_NOTIFICATION_EMAIL,
+    replyTo: order.email,
+    subject: "Neue Honigbestellung von " + order.name.replace(/[\r\n]/g, " "),
+    body: lines.join("\n")
+  });
+}
+
+function authorizeOrderEmail() {
+  return MailApp.getRemainingDailyQuota();
 }
 
 function sendTelegramMessage_(message) {
@@ -270,14 +302,15 @@ function reserveOrder_(payload) {
       return item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
     });
 
+    const itemSummary = purchases.map(function(item) {
+      return item.quantity + "x " + item.product.name + " (" + item.product.size + ")";
+    }).join(", ");
+    const createdAt = new Date();
     dataRange.setValues(nextRows);
     try {
-      const itemSummary = purchases.map(function(item) {
-        return item.quantity + "x " + item.product.name + " (" + item.product.size + ")";
-      }).join(", ");
       orders.appendRow([
         orderId,
-        new Date(),
+        createdAt,
         name,
         email,
         itemSummary,
@@ -297,13 +330,15 @@ function reserveOrder_(payload) {
       stock: readInventory_(),
       lowStockThreshold: LOW_STOCK_THRESHOLD,
       lowStockAlerts: lowStockAlerts,
-      telegramOrder: {
+      orderDetails: {
+        orderId: orderId,
+        timestamp: createdAt,
         name: name,
-        items: purchases.map(function(item) {
-          return { name: item.product.name, size: item.product.size, quantity: item.quantity };
-        }),
+        email: email,
+        itemSummary: itemSummary,
         pickup: String(payload.pickup || ""),
-        date: String(payload.date || "")
+        date: String(payload.date || ""),
+        note: String(payload.note || "")
       }
     };
   } finally {
