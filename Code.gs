@@ -198,6 +198,28 @@ function authorizeOrderEmail() {
   return MailApp.getRemainingDailyQuota();
 }
 
+function testOrderNotifications() {
+  const testId = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd-HHmmss");
+  const errors = [];
+
+  try {
+    MailApp.sendEmail({
+      to: ORDER_NOTIFICATION_EMAIL,
+      subject: "TEST - Bestellbenachrichtigung",
+      body: "Dies ist eine Testmail aus Apps Script. Es wurde keine Bestellung angelegt. Test-ID: " + testId
+    });
+  } catch (error) {
+    errors.push("E-Mail: " + error.message);
+  }
+
+  if (!sendTelegramMessage_("TEST - Bestellbenachrichtigung. Es wurde keine Bestellung angelegt. Test-ID: " + testId)) {
+    errors.push("Telegram: Senden fehlgeschlagen. Prüfe TELEGRAM_BOT_TOKEN und TELEGRAM_CHAT_ID in den Script-Eigenschaften.");
+  }
+
+  if (errors.length) throw new Error(errors.join("\n"));
+  console.log("Testmail und Telegram-Testnachricht wurden gesendet. Test-ID: " + testId);
+}
+
 function sendTelegramMessage_(message) {
   const properties = PropertiesService.getScriptProperties();
   const token = properties.getProperty("TELEGRAM_BOT_TOKEN");
