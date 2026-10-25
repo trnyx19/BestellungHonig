@@ -98,8 +98,9 @@ textarea { min-height: 92px; resize: vertical; }
 .category-products { padding-top: 14px; }
 .category-products[hidden] { display: none; }
 .category-hints { margin: 0 0 12px; padding: 12px 14px; border: 2px solid var(--gold); border-left-width: 6px; border-radius: 14px; background: var(--y); color: var(--b); box-shadow: 0 4px 0 var(--gold); font: .95rem/1.45 system-ui, sans-serif; }
-.category-hints-title { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 800; }
+.category-hints-title { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 1.12rem; font-weight: 800; }
 .category-hints-title::before { content: "!"; display: grid; flex: none; width: 24px; height: 24px; place-items: center; border: 2px solid currentColor; border-radius: 50%; font-weight: 900; }
+.category-availability { margin: 0 0 8px; font-size: 1.02rem; font-weight: 700; line-height: 1.4; }
 .category-hints ol { display: grid; gap: 4px; margin: 0; padding-left: 1.5rem; }
 .tile.candle-tile .size { font-size: 1.1rem; white-space: nowrap; }
 .tile.on { animation: pop .25s; }
@@ -120,7 +121,7 @@ input:focus, textarea:focus { background: var(--card) !important; }
 @media (min-width: 820px) { .hj { display: block; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
-.logo { display: block; width: 150px; height: 150px; margin: 0 auto 16px; border-radius: 50%; box-shadow: 0 6px 0 rgba(0,0,0,.28); animation: rise .6s both; }
+.logo { display: block; width: 150px; height: 150px; margin: 0 auto 16px; object-fit: contain; filter: drop-shadow(0 4px 3px rgba(0,0,0,.24)); animation: rise .6s both; }
 .foot { text-align: center; margin: 22px 0 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
 .foot img { display: block; margin: 0 auto 10px; border-radius: 50%; }
 .foot p { margin: 0 0 14px; line-height: 1.35; color: var(--y) !important; }
@@ -383,10 +384,10 @@ const PRODUCT_GROUPS = [
     { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g · 3,00 € je 100 g", honey: "#F7EDC4", icon: "comb", pricePer100g: 3, priceNote: "Wabenhonig: 3,00 € pro 100 g; Stückpreis abhängig vom Gewicht", sizes: [["wh1", "Stück", null]] }
   ] },
   { id: "candles", label: "Kerzen", products: [
-    { name: "Kerze Schneemann", honey: "#F7EDC4", icon: "candle-snowman", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["schma", "6cm x 10cm x 5cm", null]] },
-    { name: "Kerze Tannenbaum", honey: "#F7EDC4", icon: "candle-tree", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["tabau", "5cm x 8cm x 5cm", null]] },
-    { name: "Kerze Bienenstock", honey: "#F7EDC4", icon: "candle-beehive", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["bisto", "4cm x 5cm x 4cm", null]] },
-    { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-wichtel", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4cm x 6cm x 3,5cm", null]] }
+    { name: "Kerze Schneemann", honey: "#F7EDC4", icon: "candle-wichtel", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["schma", "6cm x 10cm x 5cm", null]] },
+    { name: "Kerze Tannenbaum", honey: "#F7EDC4", icon: "candle-beehive", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["tabau", "5cm x 8cm x 5cm", null]] },
+    { name: "Kerze Bienenstock", honey: "#F7EDC4", icon: "candle-tree", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["bisto", "4cm x 5cm x 4cm", null]] },
+    { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4cm x 6cm x 3,5cm", null]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
@@ -418,7 +419,7 @@ PRODUCT_GROUPS.forEach(group => {
   categoryMenu.appendChild(toggle);
   categoryPanels.appendChild(content);
   if (group.id === "candles") {
-    content.innerHTML = '<aside class="category-hints" role="note"><strong class="category-hints-title">Wichtige Hinweise zu den Kerzen</strong><ol><li>Maße sind ungefähre Angaben; Abweichungen bis 0,5 cm sind möglich.</li><li>Alle Kerzen bestehen aus echtem Bienenwachs.</li></ol></aside>';
+    content.innerHTML = '<aside class="category-hints" role="note"><strong class="category-hints-title">Wichtige Hinweise zu den Kerzen</strong><p class="category-availability">Kerzen sind aktuell noch nicht verfügbar. Ab wann sie erhältlich sind und in welcher Stückzahl, steht noch nicht fest.</p><ol><li>Maße sind ungefähre Angaben; Abweichungen bis 0,5 cm sind möglich.</li><li>Alle Kerzen bestehen aus echtem Bienenwachs.</li></ol></aside>';
   }
   groupElements[group.id] = { toggle, content };
 });
@@ -691,7 +692,39 @@ $("send").onclick = async () => {
   }
 };
 
-$("logo2").src = $("logo1").src;
+  $("logo2").src = $("logo1").src;
+const beeLogo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 330">
+<defs><clipPath id="bee-abdomen"><path d="M116 151C93 180 102 240 124 280C137 304 155 317 170 319C207 294 239 260 245 218C250 182 228 154 204 143Z"/></clipPath></defs>
+<g stroke="#7D1028" stroke-width="5" stroke-linejoin="round">
+<path d="M136 133C99 119 59 92 27 104C4 113 13 141 39 160C69 182 106 182 139 159Z" fill="#FFF8DB"/>
+<path d="M137 150C104 148 69 154 53 177C40 197 58 215 83 210C108 205 132 185 148 168Z" fill="#FFF8DB"/>
+<path d="M203 132C238 111 276 74 306 78C332 82 328 111 306 135C281 163 241 179 205 158Z" fill="#FFF8DB"/>
+<path d="M202 151C232 142 268 142 287 162C305 181 290 203 265 202C239 201 214 184 197 167Z" fill="#FFF8DB"/>
+<path d="M127 144C102 176 104 237 126 279C139 304 156 317 170 319C207 294 239 260 245 218C250 182 228 154 204 143Z" fill="#F7C61C"/>
+</g>
+<g fill="none" stroke="#E9AA12" stroke-width="4" stroke-linecap="round">
+<path d="M31 111C60 111 96 127 123 147M25 126C56 127 91 141 118 160M45 173C72 165 105 164 132 163"/>
+<path d="M308 87C279 94 243 118 214 145M317 103C285 112 252 135 220 160M283 175C257 164 225 160 202 164"/>
+</g>
+<g clip-path="url(#bee-abdomen)">
+<path d="M91 179C133 197 192 199 254 176L264 203C207 226 145 224 102 205Z" fill="#7D1028"/>
+<path d="M98 227C142 245 195 246 249 225L254 251C207 272 152 270 111 252Z" fill="#7D1028"/>
+<path d="M119 276C153 289 191 288 230 271L215 302C190 315 165 324 149 321Z" fill="#7D1028"/>
+</g>
+<g fill="none" stroke="#7D1028" stroke-width="5" stroke-linecap="round"><path d="M141 48C126 30 108 23 91 23M203 47C218 29 238 21 254 23"/></g>
+<g fill="#7D1028" stroke="#E9AA12" stroke-width="3"><ellipse cx="87" cy="22" rx="11" ry="8" transform="rotate(20 87 22)"/><ellipse cx="258" cy="22" rx="11" ry="8" transform="rotate(-20 258 22)"/></g>
+<circle cx="171" cy="103" r="63" fill="#F7C61C" stroke="#7D1028" stroke-width="5"/>
+<path d="M112 87C112 48 139 39 170 39C202 39 229 52 231 88C210 68 190 63 171 66C148 68 129 77 112 87Z" fill="#7D1028"/>
+<path d="M130 112C141 104 151 106 159 115M130 119C140 116 149 118 154 124" fill="none" stroke="#7D1028" stroke-width="5" stroke-linecap="round"/>
+<ellipse cx="195" cy="103" rx="12" ry="18" fill="#FFF8DB" stroke="#7D1028" stroke-width="3"/><ellipse cx="198" cy="105" rx="6" ry="10" fill="#7D1028"/><circle cx="200" cy="100" r="3" fill="#FFF8DB"/>
+<path d="M151 137C165 150 189 150 203 135M155 138C167 144 183 144 195 137" fill="none" stroke="#7D1028" stroke-width="4" stroke-linecap="round"/>
+<path d="M145 164C157 148 177 151 190 168L204 185C211 194 203 204 194 198L176 186C188 198 195 207 188 214C181 221 172 214 164 206L145 190C133 181 135 172 145 164Z" fill="#7D1028" stroke="#FFF8DB" stroke-width="3"/>
+<path d="M197 164C184 150 166 154 155 169L142 185C135 194 142 204 152 198L170 187C158 199 151 208 158 215C165 222 174 215 182 207L199 191C210 181 208 172 197 164Z" fill="#7D1028" stroke="#FFF8DB" stroke-width="3"/>
+<path d="M144 178L160 190M184 189L197 177" fill="none" stroke="#FFF8DB" stroke-width="3" stroke-linecap="round"/>
+<path d="M135 231C145 237 155 241 165 242M207 231C198 237 188 241 178 242" fill="none" stroke="#E9AA12" stroke-width="3" opacity=".8"/>
+</svg>`;
+$("logo1").src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(beeLogo);
+$("logo1").alt = "Biene der Landimkerei Diezinger";
 render();
 loadStock().catch(error => {
   stockReady = false;
