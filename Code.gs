@@ -18,10 +18,10 @@ const INITIAL_PRODUCTS = [
   ["wh1", "Wabenhonig", "Stück", 11]
 ];
 const INITIAL_CANDLES = [
-  ["schma", "Kerze Schneemann", "6x10x5", 0],
-  ["tabau", "Kerze Tannenbaum", "5x8x5", 0],
-  ["bisto", "Kerze Bienenstock", "4x5x4", 0],
-  ["weiwi", "Kerze Weihnachtswichtel", "4x6x3,5", 0]
+  ["schma", "Kerze Schneemann", "6x10x5 cm", 0],
+  ["tabau", "Kerze Tannenbaum", "5x8x5 cm", 0],
+  ["bisto", "Kerze Bienenstock", "4x5x4 cm", 0],
+  ["weiwi", "Kerze Weihnachtswichtel", "4x6x3,5 cm", 0]
 ];
 
 function setup() {
@@ -50,7 +50,14 @@ function setup() {
     inventory.appendRow(["KZN", "KERZEN", "BxHxT", ""]);
   }
   INITIAL_CANDLES.forEach(function(product) {
-    if (!inventoryIds.has(product[0])) inventory.appendRow(product);
+    const rowIndex = inventoryRows.findIndex(function(row) { return String(row[0]) === product[0]; });
+    if (rowIndex === -1) {
+      inventory.appendRow(product);
+      return;
+    }
+    const sizeCell = inventory.getRange(rowIndex + 2, 3);
+    const size = String(sizeCell.getValue()).trim();
+    if (size && !/\bcm\s*$/i.test(size)) sizeCell.setValue(size + " cm");
   });
   inventory.autoResizeColumns(1, 4);
 
