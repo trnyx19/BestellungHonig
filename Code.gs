@@ -18,10 +18,10 @@ const INITIAL_PRODUCTS = [
   ["wh1", "Wabenhonig", "Stück", 11]
 ];
 const INITIAL_CANDLES = [
-  ["schma", "Kerze Schneemann", "6x10x5 cm", 0],
-  ["tabau", "Kerze Tannenbaum", "5x8x5 cm", 0],
-  ["bisto", "Kerze Bienenstock", "4x5x4 cm", 0],
-  ["weiwi", "Kerze Weihnachtswichtel", "4x6x3,5 cm", 0]
+  ["schma", "Kerze Schneemann", "6cm x 10cm x 5cm", 0],
+  ["tabau", "Kerze Tannenbaum", "5cm x 8cm x 5cm", 0],
+  ["bisto", "Kerze Bienenstock", "4cm x 5cm x 4cm", 0],
+  ["weiwi", "Kerze Weihnachtswichtel", "4cm x 6cm x 3,5cm", 0]
 ];
 
 function setup() {
@@ -35,8 +35,8 @@ function setup() {
   let inventoryRows = inventory.getLastRow() > 1
     ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
     : [];
-  let inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]); }));
-  if (!INITIAL_PRODUCTS.some(function(product) { return inventoryIds.has(product[0]); })) {
+  let inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]).trim().toUpperCase(); }));
+  if (!INITIAL_PRODUCTS.some(function(product) { return inventoryIds.has(String(product[0]).trim().toUpperCase()); })) {
     inventory.appendRow(["HNG", "HONIG", "", ""]);
     inventory.appendRow(["", "", "", ""]);
     INITIAL_PRODUCTS.forEach(function(product) { inventory.appendRow(product); });
@@ -44,20 +44,45 @@ function setup() {
   inventoryRows = inventory.getLastRow() > 1
     ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
     : [];
-  inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]); }));
-  if (!inventoryIds.has("KZN")) {
-    inventory.appendRow(["", "", "", ""]);
-    inventory.appendRow(["KZN", "KERZEN", "BxHxT", ""]);
+  inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]).trim().toUpperCase(); }));
+  const candleHeaderIndexes = [];
+  inventoryRows.forEach(function(row, index) {
+    if (String(row[0]).trim().toUpperCase() === "KZN") candleHeaderIndexes.push(index);
+  });
+  candleHeaderIndexes.slice(1).reverse().forEach(function(index) {
+    inventory.getRange(index + 2, 1, 1, 4).clearContent();
+  });
+  if (candleHeaderIndexes.length > 1) {
+    inventoryRows = inventory.getLastRow() > 1
+      ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
+      : [];
+    inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]).trim().toUpperCase(); }));
   }
+  if (!inventoryIds.has("KZN")) {
+    const firstCandle = inventoryRows.findIndex(function(row) {
+      return INITIAL_CANDLES.some(function(product) { return String(row[0]).trim() === product[0]; });
+    });
+    if (firstCandle === -1) {
+      inventory.appendRow(["", "", "", ""]);
+      inventory.appendRow(["KZN", "KERZEN", "BxHxT", ""]);
+    } else {
+      const headerRow = firstCandle + 2;
+      inventory.insertRowsBefore(headerRow, 1);
+      inventory.getRange(headerRow, 1, 1, 4).setValues([["KZN", "KERZEN", "BxHxT", ""]]);
+    }
+  }
+  inventoryRows = inventory.getLastRow() > 1
+    ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
+    : [];
   INITIAL_CANDLES.forEach(function(product) {
-    const rowIndex = inventoryRows.findIndex(function(row) { return String(row[0]) === product[0]; });
+    const rowIndex = inventoryRows.findIndex(function(row) { return String(row[0]).trim() === product[0]; });
     if (rowIndex === -1) {
       inventory.appendRow(product);
+      inventoryRows.push(product);
       return;
     }
     const sizeCell = inventory.getRange(rowIndex + 2, 3);
-    const size = String(sizeCell.getValue()).trim();
-    if (size && !/\bcm\s*$/i.test(size)) sizeCell.setValue(size + " cm");
+    if (String(sizeCell.getValue()).trim() !== product[2]) sizeCell.setValue(product[2]);
   });
   inventory.autoResizeColumns(1, 4);
 
