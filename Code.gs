@@ -17,6 +17,12 @@ const INITIAL_PRODUCTS = [
   ["wb500", "Wald- und Blütenhonig", "500 g", 2],
   ["wh1", "Wabenhonig", "Stück", 11]
 ];
+const INITIAL_CANDLES = [
+  ["schma", "Kerze Schneemann", "6x10x5", 0],
+  ["tabau", "Kerze Tannenbaum", "5x8x5", 0],
+  ["bisto", "Kerze Bienenstock", "4x5x4", 0],
+  ["weiwi", "Kerze Weihnachtswichtel", "4x6x3,5", 0]
+];
 
 function setup() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -24,10 +30,29 @@ function setup() {
   if (!inventory) inventory = spreadsheet.insertSheet(INVENTORY_SHEET);
   if (inventory.getLastRow() === 0) {
     inventory.getRange(1, 1, 1, 4).setValues([["ID", "Sorte", "Größe", "Bestand"]]);
-    inventory.getRange(2, 1, INITIAL_PRODUCTS.length, 4).setValues(INITIAL_PRODUCTS);
     inventory.setFrozenRows(1);
-    inventory.autoResizeColumns(1, 4);
   }
+  let inventoryRows = inventory.getLastRow() > 1
+    ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
+    : [];
+  let inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]); }));
+  if (!INITIAL_PRODUCTS.some(function(product) { return inventoryIds.has(product[0]); })) {
+    inventory.appendRow(["HNG", "HONIG", "", ""]);
+    inventory.appendRow(["", "", "", ""]);
+    INITIAL_PRODUCTS.forEach(function(product) { inventory.appendRow(product); });
+  }
+  inventoryRows = inventory.getLastRow() > 1
+    ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
+    : [];
+  inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]); }));
+  if (!inventoryIds.has("KZN")) {
+    inventory.appendRow(["", "", "", ""]);
+    inventory.appendRow(["KZN", "KERZEN", "BxHxT", ""]);
+  }
+  INITIAL_CANDLES.forEach(function(product) {
+    if (!inventoryIds.has(product[0])) inventory.appendRow(product);
+  });
+  inventory.autoResizeColumns(1, 4);
 
   let orders = spreadsheet.getSheetByName(ORDERS_SHEET);
   if (!orders) orders = spreadsheet.insertSheet(ORDERS_SHEET);
@@ -148,9 +173,9 @@ function sendCurrentLowStockAlerts() {
   if (!inventory || inventory.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
   const rows = inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues();
   const alerts = rows.map(function(row) {
-    return { name: String(row[1]), size: String(row[2]), count: Number(row[3]) };
+    return { id: String(row[0]), name: String(row[1]), size: String(row[2]), count: Number(row[3]) };
   }).filter(function(item) {
-    return Number.isInteger(item.count) && item.count >= 0 && item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
+    return item.id && item.id !== "HNG" && item.id !== "KZN" && Number.isInteger(item.count) && item.count >= 0 && item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
   });
   sendLowStockAlerts_(alerts);
   return alerts.length;
@@ -255,7 +280,8 @@ function readInventory_() {
   if (!sheet || sheet.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
   return rows.reduce(function(stock, row) {
-    stock[String(row[0])] = Number(row[3]);
+    const id = String(row[0]);
+    if (id && id !== "HNG" && id !== "KZN") stock[id] = Number(row[3]);
     return stock;
   }, {});
 }
@@ -289,9 +315,11 @@ function reserveOrder_(payload) {
     const rows = dataRange.getValues();
     const rowById = {};
     rows.forEach(function(row, index) {
+      const id = String(row[0]);
+      if (!id || id === "HNG" || id === "KZN") return;
       const stock = Number(row[3]);
       if (!Number.isInteger(stock) || stock < 0) throw new Error("Im Bestandsblatt steht eine ungültige Stückzahl.");
-      rowById[String(row[0])] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock };
+      rowById[id] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock };
     });
 
     const totals = requested.reduce(function(result, item) {

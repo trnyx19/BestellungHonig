@@ -88,6 +88,12 @@ textarea { min-height: 92px; resize: vertical; }
 
 .card.prod, .opt { transition: transform .15s, box-shadow .15s; }
 .card.prod:hover, .opt:hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--gold); }
+.product-group { margin-bottom: 12px; }
+.category-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 14px 18px; border: 2px solid var(--gold); border-radius: 16px; background: var(--card); color: var(--b); box-shadow: 0 4px 0 var(--gold); font: 1.6rem Lobster, cursive; cursor: pointer; }
+.category-toggle::after { content: "+"; font: 1.6rem/1 system-ui, sans-serif; }
+.category-toggle[aria-expanded="true"]::after { content: "−"; }
+.category-products { padding-top: 14px; }
+.category-products[hidden], .product-group[hidden] { display: none; }
 .tile.on { animation: pop .25s; }
 .ctl output { display: inline-block; min-width: 1.4em; text-align: center; }
 input:focus, textarea:focus { background: var(--card) !important; }
@@ -181,6 +187,13 @@ body { padding-bottom: 32px; }
     <text x="50" y="46" text-anchor="middle" textLength="72" lengthAdjust="spacingAndGlyphs" font-family="system-ui, sans-serif" font-size="9" font-weight="900" fill="#666055">WABENHONIG</text>
     <rect x="11" y="4" width="78" height="78" rx="3" fill="none" stroke="#A9854F" stroke-width="1.2"/>
   </symbol>
+  <symbol id="candle" viewBox="0 0 100 90">
+    <path d="M48 22C38 14 48 8 51 3 57 12 62 16 55 23" fill="#E6BE18" stroke="#822045" stroke-width="2"/>
+    <path d="M36 24H64V77Q64 83 58 83H42Q36 83 36 77Z" fill="#FFF6BC" stroke="#822045" stroke-width="2.5"/>
+    <path d="M50 24V18" stroke="#3D290B" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M41 37H59M41 46H59M41 55H59" stroke="#E6BE18" stroke-width="2" opacity=".8"/>
+    <path d="M43 64H57" stroke="#822045" stroke-width="2" opacity=".7"/>
+  </symbol>
 </svg>
 <div class="hero-wrap">
   <header class="hero">
@@ -196,7 +209,7 @@ body { padding-bottom: 32px; }
 <main>
   <form id="f" onsubmit="return false" novalidate>
     <section class="step">
-      <h2><span style="display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:12px!important;white-space:nowrap!important;"><span class="n">1</span><span style="color:#FFE337!important;">Sorten wählen</span></span></h2>
+      <h2><span style="display:inline-flex!important;flex-direction:row!important;align-items:center!important;gap:12px!important;white-space:nowrap!important;"><span class="n">1</span><span style="color:#FFE337!important;">Produkte wählen</span></span></h2>
       <div id="products"></div>
     </section>
 
@@ -261,19 +274,46 @@ body { padding-bottom: 32px; }
 const STOCK_API = "https://script.google.com/macros/s/AKfycbz--QXl5yxlw_zdT1gtvzCSiKuvSQ7Pk12C3P_ZSzG_hzEteA4OsoTrlB323yLAUHL-iw/exec";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
 // Der Bestand und die Status werden aus dem Google Sheet geladen.
-const PRODUCTS = [
-  { name: "Cremiger Honig",  note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", 3], ["cf500", "500 g", 7]] },
-  { name: "Cremiger Honig",  note: "Sommer",   honey: "#DBB256", sizes: [["cs250", "250 g", 3], ["cs500", "500 g", 7]] },
-  { name: "Flüssiger Honig", note: "Sommer",   honey: "#8B541E", sizes: [["fs250", "250 g", 3], ["fs500", "500 g", 7]] },
-  { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", 3], ["wb500", "500 g", 7]] },
-  { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g · 3,00 € je 100 g", honey: "#F7EDC4", icon: "comb", pricePer100g: 3, sizes: [["wh1", "Stück", null]] }
+const PRODUCT_GROUPS = [
+  { id: "honey", label: "Honig", products: [
+    { name: "Cremiger Honig", note: "Frühling", honey: "#D6C58F", sizes: [["cf250", "250 g", 3], ["cf500", "500 g", 7]] },
+    { name: "Cremiger Honig", note: "Sommer", honey: "#DBB256", sizes: [["cs250", "250 g", 3], ["cs500", "500 g", 7]] },
+    { name: "Flüssiger Honig", note: "Sommer", honey: "#8B541E", sizes: [["fs250", "250 g", 3], ["fs500", "500 g", 7]] },
+    { name: "Wald- und Blütenhonig", note: "flüssig", honey: "#6B3918", sizes: [["wb250", "250 g", 3], ["wb500", "500 g", 7]] },
+    { name: "Wabenhonig", note: "ca. 170 g bis ca. 300 g · 3,00 € je 100 g", honey: "#F7EDC4", icon: "comb", pricePer100g: 3, priceNote: "Wabenhonig: 3,00 € pro 100 g; Stückpreis abhängig vom Gewicht", sizes: [["wh1", "Stück", null]] }
+  ] },
+  { id: "candles", label: "Kerzen", products: [
+    { name: "Kerze Schneemann", honey: "#F7EDC4", icon: "candle", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["schma", "6x10x5", null]] },
+    { name: "Kerze Tannenbaum", honey: "#F7EDC4", icon: "candle", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["tabau", "5x8x5", null]] },
+    { name: "Kerze Bienenstock", honey: "#F7EDC4", icon: "candle", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["bisto", "4x5x4", null]] },
+    { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4x6x3,5", null]] }
+  ] }
 ];
+const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
 /* ========================= */
 
 const $ = id => document.getElementById(id);
 const val = id => $(id).value.trim();
 const eur = n => n.toFixed(2).replace(".", ",") + " €";
 const qty = {}, items = [];
+const groupElements = {};
+
+PRODUCT_GROUPS.forEach(group => {
+  const section = document.createElement("section");
+  section.className = "product-group";
+  section.dataset.group = group.id;
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "category-toggle";
+  toggle.textContent = group.label;
+  toggle.setAttribute("aria-expanded", "false");
+  const content = document.createElement("div");
+  content.className = "category-products";
+  content.hidden = true;
+  section.append(toggle, content);
+  $("products").appendChild(section);
+  groupElements[group.id] = { section, toggle, content };
+});
 
 PRODUCTS.forEach(p => {
   const g = document.createElement("article");
@@ -283,7 +323,7 @@ PRODUCTS.forEach(p => {
   g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
   p.sizes.forEach(([id, size, price]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
-    items.push({ id, label, price });
+    items.push({ id, label, price, priceNote: p.priceNote });
     qty[id] = 0;
     const w = parseInt(size) > 300 ? 58 : 44;
     const t = document.createElement("div");
@@ -301,7 +341,7 @@ PRODUCTS.forEach(p => {
     t.dataset.stockStatus = "loading";
     g.querySelector(".sizes").appendChild(t);
   });
-  $("products").appendChild(g);
+  groupElements[p.group].content.appendChild(g);
 });
 
 let stockReady = false;
@@ -417,6 +457,18 @@ $("pickup-fs").addEventListener("change", e => {
 });
 
 $("products").addEventListener("click", e => {
+  const toggle = e.target.closest("button.category-toggle");
+  if (toggle) {
+    const selectedGroup = toggle.closest(".product-group");
+    const opening = groupElements[selectedGroup.dataset.group].content.hidden;
+    Object.entries(groupElements).forEach(([id, group]) => {
+      const active = opening && id === selectedGroup.dataset.group;
+      group.section.hidden = opening && !active;
+      group.content.hidden = !active;
+      group.toggle.setAttribute("aria-expanded", String(active));
+    });
+    return;
+  }
   const b = e.target.closest("button[data-id]");
   if (!b) return;
   const id = b.dataset.id;
@@ -458,7 +510,8 @@ function render() {
     const parts = [];
     if (knownSubtotal(c) > 0) parts.push("Bekannte Zwischensumme " + eur(knownSubtotal(c)));
     if (pickupFee()) parts.push("Abholschrank +" + eur(pickupFee()));
-    parts.push("Wabenhonig: 3,00 € pro 100 g; Stückpreis abhängig vom Gewicht");
+    const notes = [...new Set(c.filter(item => item.price == null && item.priceNote).map(item => item.priceNote))];
+    parts.push(...notes);
     priceText = parts.join(" · ");
   }
   $("sum").innerHTML = '<span class="cnt">' + n + "</span>" + (n === 1 ? "Glas" : "Gläser") + " · " + priceText;
