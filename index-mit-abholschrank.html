@@ -97,8 +97,11 @@ textarea { min-height: 92px; resize: vertical; }
 .category-toggle[aria-expanded="true"]::after { content: "−"; }
 .category-products { padding-top: 14px; }
 .category-products[hidden] { display: none; }
-.category-hints { margin: 0 0 12px; padding-left: 1.5rem; color: var(--y); font: .95rem/1.45 system-ui, sans-serif; }
-.category-hints li + li { margin-top: 3px; }
+.category-hints { margin: 0 0 12px; padding: 12px 14px; border: 2px solid var(--gold); border-left-width: 6px; border-radius: 14px; background: var(--y); color: var(--b); box-shadow: 0 4px 0 var(--gold); font: .95rem/1.45 system-ui, sans-serif; }
+.category-hints-title { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 800; }
+.category-hints-title::before { content: "!"; display: grid; flex: none; width: 24px; height: 24px; place-items: center; border: 2px solid currentColor; border-radius: 50%; font-weight: 900; }
+.category-hints ol { display: grid; gap: 4px; margin: 0; padding-left: 1.5rem; }
+.tile.candle-tile .size { font-size: 1.1rem; white-space: nowrap; }
 .tile.on { animation: pop .25s; }
 .ctl output { display: inline-block; min-width: 1.4em; text-align: center; }
 input:focus, textarea:focus { background: var(--card) !important; }
@@ -415,7 +418,7 @@ PRODUCT_GROUPS.forEach(group => {
   categoryMenu.appendChild(toggle);
   categoryPanels.appendChild(content);
   if (group.id === "candles") {
-    content.innerHTML = '<ol class="category-hints"><li>Maße sind ungefähr; Abweichungen bis 0,5 cm möglich.</li><li>Alle Kerzen sind aus echtem Bienenwachs.</li></ol>';
+    content.innerHTML = '<aside class="category-hints" role="note"><strong class="category-hints-title">Wichtige Hinweise zu den Kerzen</strong><ol><li>Maße sind ungefähre Angaben; Abweichungen bis 0,5 cm sind möglich.</li><li>Alle Kerzen bestehen aus echtem Bienenwachs.</li></ol></aside>';
   }
   groupElements[group.id] = { toggle, content };
 });
@@ -433,6 +436,7 @@ PRODUCTS.forEach(p => {
     const w = parseInt(size) > 300 ? 58 : 44;
     const t = document.createElement("div");
     t.className = "tile";
+    if (p.group === "candles") t.classList.add("candle-tile");
     t.id = "tile-" + id;
     t.innerHTML =
       '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
