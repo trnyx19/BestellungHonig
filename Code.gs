@@ -2,7 +2,7 @@ const LOW_STOCK_THRESHOLD = 6;
 const LOW_STOCK_TELEGRAM_THRESHOLD = 3;
 const INVENTORY_SHEET = "Bestand";
 const ORDERS_SHEET = "Bestellungen";
-const ORDER_NOTIFICATION_EMAIL = "landimkereidiezinger.bestellung@gmx.de";
+const ORDER_NOTIFICATION_EMAIL = "gerhard-diez@gmx.de, lukasdiezinger3@gmail.com";
 const ORDER_SENDER_NAME = "Neue Bestellung";
 const ORDER_EMAIL_SUBJECT = "[HONIG-BESTELLUNG] Neue Bestellung";
 
