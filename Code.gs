@@ -29,9 +29,10 @@ function setup() {
   let inventory = spreadsheet.getSheetByName(INVENTORY_SHEET);
   if (!inventory) inventory = spreadsheet.insertSheet(INVENTORY_SHEET);
   if (inventory.getLastRow() === 0) {
-    inventory.getRange(1, 1, 1, 4).setValues([["ID", "Sorte", "Größe", "Bestand"]]);
+    inventory.getRange(1, 1, 1, 5).setValues([["ID", "Sorte", "Größe", "Bestand", "Nicht verfügbar"]]);
     inventory.setFrozenRows(1);
   }
+  inventory.getRange(1, 5).setValue("Nicht verfügbar");
   let inventoryRows = inventory.getLastRow() > 1
     ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
     : [];
@@ -84,7 +85,8 @@ function setup() {
     const sizeCell = inventory.getRange(rowIndex + 2, 3);
     if (String(sizeCell.getValue()).trim() !== product[2]) sizeCell.setValue(product[2]);
   });
-  inventory.autoResizeColumns(1, 4);
+  setupUnavailableCheckboxes_(inventory);
+  inventory.autoResizeColumns(1, 5);
 
   let orders = spreadsheet.getSheetByName(ORDERS_SHEET);
   if (!orders) orders = spreadsheet.insertSheet(ORDERS_SHEET);
@@ -131,6 +133,7 @@ function doGet(e) {
       accepted: accepted,
       outcomeReady: outcomeReady,
       stock: stock,
+      unavailable: readUnavailable_(),
       lowStockThreshold: LOW_STOCK_THRESHOLD,
       message: orderMessage
     });
@@ -318,6 +321,31 @@ function readInventory_() {
   }, {});
 }
 
+function readUnavailable_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INVENTORY_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
+  return rows.reduce(function(unavailable, row) {
+    const id = String(row[0]);
+    if (id && id !== "HNG" && id !== "KZN") unavailable[id] = row[4] === true;
+    return unavailable;
+  }, {});
+}
+
+function setupUnavailableCheckboxes_(sheet) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+  const rows = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  const checkboxRule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  rows.forEach(function(row, index) {
+    const id = String(row[0]).trim();
+    if (!id || id === "HNG" || id === "KZN") return;
+    const cell = sheet.getRange(index + 2, 5);
+    cell.setDataValidation(checkboxRule);
+    if (row[4] === "") cell.setValue(false);
+  });
+}
+
 function reserveOrder_(payload) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -341,17 +369,18 @@ function reserveOrder_(payload) {
       ? orders.getRange(2, 1, orders.getLastRow() - 1, 8).getValues()
       : [];
     const previous = orderRows.find(function(row) { return String(row[0]) === orderId; });
-    if (previous) return { ok: true, duplicate: true, stock: readInventory_(), lowStockThreshold: LOW_STOCK_THRESHOLD, lowStockAlerts: [] };
+    if (previous) return { ok: true, duplicate: true, stock: readInventory_(), unavailable: readUnavailable_(), lowStockThreshold: LOW_STOCK_THRESHOLD, lowStockAlerts: [] };
 
     const dataRange = inventory.getRange(2, 1, inventory.getLastRow() - 1, 4);
     const rows = dataRange.getValues();
+    const unavailableRows = inventory.getRange(2, 5, inventory.getLastRow() - 1, 1).getValues();
     const rowById = {};
     rows.forEach(function(row, index) {
       const id = String(row[0]);
       if (!id || id === "HNG" || id === "KZN") return;
       const stock = Number(row[3]);
       if (!Number.isInteger(stock) || stock < 0) throw new Error("Im Bestandsblatt steht eine ungültige Stückzahl.");
-      rowById[id] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock };
+      rowById[id] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock, unavailable: unavailableRows[index][0] === true };
     });
 
     const totals = requested.reduce(function(result, item) {
@@ -368,6 +397,7 @@ function reserveOrder_(payload) {
       const quantity = totals[id];
       const product = rowById[id];
       if (!product || quantity > 20) throw new Error("Eine ausgewählte Sorte oder Menge ist ungültig.");
+      if (product.unavailable) throw new Error(product.name + " (" + product.size + ") ist derzeit nicht verfügbar.");
       if (quantity > product.stock) {
         throw new Error("Zu viel ausgewählt: " + product.name + " (" + product.size + "). Du hast " + quantity + " gewählt, verfügbar sind " + product.stock + ". Bitte reduziere die Menge.");
       }
@@ -415,6 +445,7 @@ function reserveOrder_(payload) {
     return {
       ok: true,
       stock: readInventory_(),
+      unavailable: readUnavailable_(),
       lowStockThreshold: LOW_STOCK_THRESHOLD,
       lowStockAlerts: lowStockAlerts,
       orderDetails: {
