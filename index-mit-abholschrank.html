@@ -160,9 +160,39 @@ body { padding-bottom: 32px; }
   #done .technical-message { font-size: 1.1rem; line-height: 1.6; max-width: 48ch; }
   #done .technical-message a { display: inline-block; margin-top: 6px; color: #822045; font-size: 1.08em; font-weight: 700; text-decoration: none; }
 .done-quantity { display: flex; align-items: center; justify-content: center; font-weight: 600; margin-bottom: 4px !important; }
+body#honey-order main { font-family: Lobster, cursive !important; }
+body#honey-order .hero h1,
+body#honey-order main h2,
+body#honey-order main h3,
+body#honey-order .n,
+body#honey-order .size,
+body#honey-order .ctl output,
+body#honey-order .category-toggle,
+body#honey-order .send,
+body#honey-order .again,
+body#honey-order .cnt,
+body#honey-order .foot .lob { font-family: Lobster, cursive !important; }
+body#honey-order .hint {
+  box-sizing: border-box !important;
+  width: auto !important;
+  max-width: calc(100% - 32px) !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+body#honey-order #f,
+body#honey-order #f .two > * { min-width: 0 !important; }
+body#honey-order #f input[type=text],
+body#honey-order #f input[type=email],
+body#honey-order #f input[type=date],
+body#honey-order #f textarea {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
 </style>
 </head>
-<body>
+<body id="honey-order">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="jar" viewBox="0 0 100 90">
     <path d="M16 28H84V72Q84 86 70 86H30Q16 86 16 72Z" style="fill:var(--honey,#F7EDC4)"/>
