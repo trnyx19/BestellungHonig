@@ -156,6 +156,7 @@ body { padding-bottom: 32px; }
 #done { text-align: center; padding: 28px 22px 30px; }
 #done h2 { font-size: 2.6rem; margin: 8px 0 10px; }
 #done p { margin: 0 auto; max-width: 36ch; }
+#done .email-auth-note { margin-top: 12px; font: .92rem/1.5 system-ui, sans-serif; }
   #done .technical-message { font-size: 1.1rem; line-height: 1.6; max-width: 48ch; }
   #done .technical-message a { display: inline-block; margin-top: 6px; color: #822045; font-size: 1.08em; font-weight: 700; text-decoration: none; }
 .done-quantity { display: flex; align-items: center; justify-content: center; font-weight: 600; margin-bottom: 4px !important; }
@@ -356,6 +357,7 @@ body { padding-bottom: 32px; }
     <h2>Danke!</h2>
     <p class="done-quantity" role="status"><span class="cnt" id="done-count"></span><span id="done-count-label"></span></p>
     <p>Vielen Dank für deine Bestellung! Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist! Falls du deine Bestellung am Abholschrank abholst, ist eine Anleitung im Anhang.</p>
+    <p class="email-auth-note">Echte E-Mails kommen nur von gerhard-diez@gmx.de oder lukasdiezinger3@gmail.com. Andere Absender sind nicht von uns.</p>
     <button class="again" type="button" onclick="location.reload()">Neue Bestellung</button>
   </section>
   <div class="hexrow" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -374,7 +376,7 @@ body { padding-bottom: 32px; }
 <script>
 /* ===== Hier anpassen ===== */
 // Nach der Bereitstellung des Apps-Script-Web-App-Endpunkts hier die URL eintragen.
-const STOCK_API = "https://script.google.com/macros/s/AKfycbz--QXl5yxlw_zdT1gtvzCSiKuvSQ7Pk12C3P_ZSzG_hzEteA4OsoTrlB323yLAUHL-iw/exec";
+const STOCK_API = "https://script.google.com/macros/s/AKfycbxWGgSf4OAF5ersuaQRJ5cU2ryfGmf33QZ3yrt_c97duxosBaX2OQOttIB5xhywUX2Ysg/exec";
 // Preise: null durch Zahl ersetzen, z. B. 6.5. Wenn alle gewählten Sorten einen Preis haben, zeigt die Seite die Gesamtsumme.
 // Der Bestand und die Status werden aus dem Google Sheet geladen.
 const PRODUCT_GROUPS = [
