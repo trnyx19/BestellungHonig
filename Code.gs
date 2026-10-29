@@ -5,6 +5,7 @@ const ORDERS_SHEET = "Bestellungen";
 const ORDER_NOTIFICATION_EMAIL = "gerhard-diez@gmx.de, lukasdiezinger3@gmail.com";
 const ORDER_SENDER_NAME = "Neue Bestellung";
 const ORDER_EMAIL_SUBJECT = "[HONIG-BESTELLUNG] Neue Bestellung";
+const MAX_ORDER_QUANTITIES = { arb3d: 3, koe3d: 3, wei3d: 3, volk3d: 5, weivol3d: 5 };
 
 const INITIAL_PRODUCTS = [
   ["cf250", "Cremiger Honig Frühling", "250 g", 10],
@@ -435,7 +436,9 @@ function reserveOrder_(payload) {
     const purchases = Object.keys(totals).map(function(id) {
       const quantity = totals[id];
       const product = rowById[id];
-      if (!product || quantity > 20) throw new Error("Eine ausgewählte Sorte oder Menge ist ungültig.");
+      if (!product) throw new Error("Eine ausgewählte Sorte oder Menge ist ungültig.");
+      const maxQuantity = MAX_ORDER_QUANTITIES[id] || 20;
+      if (quantity > maxQuantity) throw new Error("Für " + product.name + " sind höchstens " + maxQuantity + " Stück pro Bestellung möglich.");
       if (product.unavailable) throw new Error(product.name + " (" + product.size + ") ist derzeit nicht verfügbar.");
       if (quantity > product.stock) {
         throw new Error("Zu viel ausgewählt: " + product.name + " (" + product.size + "). Du hast " + quantity + " gewählt, verfügbar sind " + product.stock + ". Bitte reduziere die Menge.");

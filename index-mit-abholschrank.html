@@ -541,7 +541,7 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4cm x 6cm x 3,5cm", null]] }
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
-    { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "100 80 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
+    { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "100 80 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", 0.2]] },
     { name: "Königin", icon: "bee-queen", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
     { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", iconViewBox: "130 70 496 400", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
     { name: "Bienchenvolk", icon: "bee-queen", iconViewBox: "120 70 480 360", icons: [{ id: "bee-queen", viewBox: "120 70 480 360" }, { id: "bee-worker", viewBox: "100 80 400 350" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
@@ -549,6 +549,7 @@ const PRODUCT_GROUPS = [
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
+const MAX_ORDER_QUANTITIES = { arb3d: 3, koe3d: 3, wei3d: 3, volk3d: 5, weivol3d: 5 };
 /* ========================= */
 
 const $ = id => document.getElementById(id);
@@ -600,13 +601,14 @@ PRODUCTS.forEach(p => {
   g.innerHTML = '<div class="chead">' + headerIcon + '<div class="ct"><h3>' + (p.displayName || p.name) + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
   p.sizes.forEach(([id, size, price]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
-    items.push({ id, label, price, priceNote: p.priceNote });
+    items.push({ id, label, price, priceNote: p.priceNote, maxQuantity: MAX_ORDER_QUANTITIES[id] || 20 });
     qty[id] = 0;
     const w = parseInt(size) > 300 ? 58 : 44;
     const t = document.createElement("div");
     t.className = "tile";
     if (p.group === "candles") t.classList.add("candle-tile");
     t.id = "tile-" + id;
+    t.dataset.maxQuantity = String(MAX_ORDER_QUANTITIES[id] || 20);
     t.innerHTML =
       iconMarkup(icon, iconViewBox, "jar", w) +
       '<div class="tl"><span class="size">' + size + '</span><span class="price">' + (price != null ? eur(price) : p.pricePer100g != null ? eur(p.pricePer100g) + " / 100 g" : "-- €") + '</span></div>' +
@@ -645,7 +647,7 @@ function applyStock(stock, lowStockThreshold = 6, unavailable = {}) {
     badge.className = "availability " + status;
     badge.textContent = isUnavailable || status === "soldout" ? labels[status] : labels[status] + " (" + count + ")";
     tile.querySelector('button[data-d="-1"]').disabled = isUnavailable || qty[item.id] === 0;
-    tile.querySelector('button[data-d="1"]').disabled = isUnavailable || status === "soldout" || qty[item.id] >= count || qty[item.id] >= 20;
+    tile.querySelector('button[data-d="1"]').disabled = isUnavailable || status === "soldout" || qty[item.id] >= Math.min(item.maxQuantity, count);
   });
   stockReady = true;
 }
@@ -758,7 +760,7 @@ $("products").addEventListener("click", e => {
   const id = b.dataset.id;
   const tile = $("tile-" + id);
   if (tile.dataset.stockStatus === "loading" || tile.dataset.unavailable === "true" || (tile.dataset.soldout === "true" && Number(b.dataset.d) > 0)) return;
-  const limit = Math.min(20, Number(tile.dataset.stockCount));
+  const limit = Math.min(Number(tile.dataset.maxQuantity), Number(tile.dataset.stockCount));
   if (Number(b.dataset.d) > 0 && qty[id] >= limit) return;
   qty[id] = Math.max(0, Math.min(limit, qty[id] + Number(b.dataset.d)));
   $("q-" + id).textContent = qty[id];
