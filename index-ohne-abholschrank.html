@@ -80,8 +80,10 @@ textarea { min-height: 92px; resize: vertical; }
 .two label.f { margin-top: 0; }
 @media (min-width: 640px) {
   .card.prod { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-  .card.prod .chead { flex: 1; margin: 0; }
-  .card.prod .sizes { width: 320px; flex: none; }
+  .card.prod .chead { flex: 1; min-width: 0; margin: 0; }
+  .card.prod .ct { min-width: 0; }
+  .card.prod .chead h3 { overflow-wrap: anywhere; }
+  .card.prod .sizes { width: 320px; max-width: 48%; min-width: 0; flex: 0 1 320px; }
   .opts { grid-template-columns: 1fr; }
   .two { grid-template-columns: 1fr 1fr; }
   .two label.f { margin-top: 16px; }
@@ -482,8 +484,8 @@ const PRODUCT_GROUPS = [
     { name: "Arbeiter Bienchen", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
     { name: "Königin", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
     { name: "Weihnachtsbienchen", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
-    { name: "Bienchenvolk", note: "4x Arbeiter Bienchen, 1x Königin", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
-    { name: "Weihnachtsbienchenvolk", note: "4x Arbeiter Bienchen, 1x Königin", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
+    { name: "Bienchenvolk", note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
+    { name: "Weihnachtsbienchenvolk", note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
