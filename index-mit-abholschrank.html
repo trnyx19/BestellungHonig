@@ -91,6 +91,10 @@ textarea { min-height: 92px; resize: vertical; }
   .two { grid-template-columns: 1fr 1fr; }
   .two label.f { margin-top: 16px; }
 }
+@media (max-width: 799px) {
+  .card.prod { display: block; }
+  .card.prod .sizes { width: 100%; max-width: 100%; min-width: 0; }
+}
 
 .card.prod, .opt { transition: transform .15s, box-shadow .15s; }
 .card.prod:hover, .opt:hover { transform: translateY(-2px); box-shadow: 0 7px 0 var(--gold); }
@@ -580,8 +584,8 @@ PRODUCTS.forEach(p => {
   const icon = p.icon || "jar";
   const iconViewBox = p.iconViewBox || "0 0 100 90";
   const headerIcon = p.icons
-    ? '<span class="bee-pair" aria-hidden="true">' + p.icons.map(function(item) { return '<svg class="jar" viewBox="' + item.viewBox + '"><use href="#' + item.id + '"/></svg>'; }).join("") + '</span>'
-    : '<svg class="jar big" width="78" viewBox="' + iconViewBox + '" aria-hidden="true"><use href="#' + icon + '"/></svg>';
+    ? '<span class="bee-pair" aria-hidden="true">' + p.icons.map(function(item) { return '<svg class="jar" viewBox="0 0 100 90"><use href="#' + item.id + '"/></svg>'; }).join("") + '</span>'
+    : '<svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>';
   g.className = "card prod" + (p.sizes.length === 1 ? " single" : "");
   g.style.setProperty("--honey", p.honey);
   g.innerHTML = '<div class="chead">' + headerIcon + '<div class="ct"><h3>' + (p.displayName || p.name) + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
@@ -595,7 +599,7 @@ PRODUCTS.forEach(p => {
     if (p.group === "candles") t.classList.add("candle-tile");
     t.id = "tile-" + id;
     t.innerHTML =
-      '<svg class="jar" width="' + w + '" viewBox="' + iconViewBox + '" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
+      '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
       '<div class="tl"><span class="size">' + size + '</span><span class="price">' + (price != null ? eur(price) : p.pricePer100g != null ? eur(p.pricePer100g) + " / 100 g" : "-- €") + '</span></div>' +
       '<span class="availability loading" id="stock-status-' + id + '" role="status">Bestand wird geladen</span>' +
       '<div class="ctl">' +
