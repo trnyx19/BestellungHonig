@@ -566,9 +566,15 @@ PRODUCTS.forEach(p => {
   const g = document.createElement("article");
   const icon = p.icon || "jar";
   const iconViewBox = p.iconViewBox || "0 0 100 90";
+  const iconMarkup = function(id, sourceViewBox, className, width) {
+    const sourceValues = sourceViewBox.split(/\s+/).map(Number);
+    const sourceWidth = sourceValues[2];
+    const sourceHeight = sourceValues[3];
+    return '<svg class="' + className + '"' + (width ? ' width="' + width + '"' : '') + ' viewBox="0 0 ' + sourceWidth + ' ' + sourceHeight + '"><use href="#' + id + '" width="' + sourceWidth + '" height="' + sourceHeight + '"/></svg>';
+  };
   const headerIcon = p.icons
-    ? '<span class="bee-pair" aria-hidden="true">' + p.icons.map(function(item) { return '<svg class="jar" viewBox="0 0 100 90"><use href="#' + item.id + '"/></svg>'; }).join("") + '</span>'
-    : '<svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>';
+    ? '<span class="bee-pair" aria-hidden="true">' + p.icons.map(function(item) { return iconMarkup(item.id, item.viewBox, "jar", null); }).join("") + '</span>'
+    : iconMarkup(icon, iconViewBox, "jar big", 78);
   g.className = "card prod" + (p.sizes.length === 1 ? " single" : "");
   g.style.setProperty("--honey", p.honey);
   g.innerHTML = '<div class="chead">' + headerIcon + '<div class="ct"><h3>' + (p.displayName || p.name) + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
@@ -582,7 +588,7 @@ PRODUCTS.forEach(p => {
     if (p.group === "candles") t.classList.add("candle-tile");
     t.id = "tile-" + id;
     t.innerHTML =
-      '<svg class="jar" width="' + w + '" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>' +
+      iconMarkup(icon, iconViewBox, "jar", w) +
       '<div class="tl"><span class="size">' + size + '</span><span class="price">' + (price != null ? eur(price) : p.pricePer100g != null ? eur(p.pricePer100g) + " / 100 g" : "-- €") + '</span></div>' +
       '<span class="availability loading" id="stock-status-' + id + '" role="status">Bestand wird geladen</span>' +
       '<div class="ctl">' +
