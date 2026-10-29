@@ -482,9 +482,9 @@ const PRODUCT_GROUPS = [
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
     { name: "Arbeiter Bienchen", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
     { name: "Königin", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
-    { name: "Weihnachtsbienchen", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
+    { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
     { name: "Bienchenvolk", note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
-    { name: "Weihnachtsbienchenvolk", note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
+    { name: "Weihnachtsbienchenvolk", displayName: "Weihnachts&shy;bienchen&shy;volk", note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
@@ -526,7 +526,7 @@ PRODUCTS.forEach(p => {
   const icon = p.icon || "jar";
   g.className = "card prod" + (p.sizes.length === 1 ? " single" : "");
   g.style.setProperty("--honey", p.honey);
-  g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + p.name + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
+  g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + (p.displayName || p.name) + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
   p.sizes.forEach(([id, size, price]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
     items.push({ id, label, price, priceNote: p.priceNote });
