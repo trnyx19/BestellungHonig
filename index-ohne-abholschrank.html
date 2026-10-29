@@ -477,6 +477,11 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Tannenbaum", honey: "#F7EDC4", icon: "candle-beehive", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["tabau", "5cm x 8cm x 5cm", null]] },
     { name: "Kerze Bienenstock", honey: "#F7EDC4", icon: "candle-tree", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["bisto", "4cm x 5cm x 4cm", null]] },
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4cm x 6cm x 3,5cm", null]] }
+  ] },
+  { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
+    { name: "Arbeiter Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
+    { name: "Königin", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
+    { name: "Weihnachtsbienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));

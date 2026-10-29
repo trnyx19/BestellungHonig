@@ -23,12 +23,18 @@ const INITIAL_CANDLES = [
   ["bisto", "Kerze Bienenstock", "4cm x 5cm x 4cm", 0],
   ["weiwi", "Kerze Weihnachtswichtel", "4cm x 6cm x 3,5cm", 0]
 ];
+const INITIAL_3D_PRINTS = [
+  ["arb3d", "Arbeiter Bienchen", "Stück", 0],
+  ["koe3d", "Königin", "Stück", 0],
+  ["wei3d", "Weihnachtsbienchen", "Stück", 0]
+];
 
 function setup() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   let inventory = spreadsheet.getSheetByName(INVENTORY_SHEET);
   if (!inventory) inventory = spreadsheet.insertSheet(INVENTORY_SHEET);
-  if (inventory.getLastRow() === 0) {
+  const isNewInventory = inventory.getLastRow() === 0;
+  if (isNewInventory) {
     inventory.getRange(1, 1, 1, 5).setValues([["ID", "Sorte", "Größe", "Bestand", "Nicht verfügbar"]]);
     inventory.setFrozenRows(1);
   }
@@ -40,7 +46,9 @@ function setup() {
   if (!INITIAL_PRODUCTS.some(function(product) { return inventoryIds.has(String(product[0]).trim().toUpperCase()); })) {
     inventory.appendRow(["HNG", "HONIG", "", ""]);
     inventory.appendRow(["", "", "", ""]);
-    INITIAL_PRODUCTS.forEach(function(product) { inventory.appendRow(product); });
+    INITIAL_PRODUCTS.forEach(function(product) {
+      inventory.appendRow(isNewInventory ? product : [product[0], product[1], product[2], ""]);
+    });
   }
   inventoryRows = inventory.getLastRow() > 1
     ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
@@ -78,12 +86,41 @@ function setup() {
   INITIAL_CANDLES.forEach(function(product) {
     const rowIndex = inventoryRows.findIndex(function(row) { return String(row[0]).trim() === product[0]; });
     if (rowIndex === -1) {
-      inventory.appendRow(product);
-      inventoryRows.push(product);
+      const newRow = isNewInventory ? product : [product[0], product[1], product[2], ""];
+      inventory.appendRow(newRow);
+      inventoryRows.push(newRow);
       return;
     }
     const sizeCell = inventory.getRange(rowIndex + 2, 3);
     if (String(sizeCell.getValue()).trim() !== product[2]) sizeCell.setValue(product[2]);
+  });
+  inventoryRows = inventory.getLastRow() > 1
+    ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
+    : [];
+  inventoryIds = new Set(inventoryRows.map(function(row) { return String(row[0]).trim().toUpperCase(); }));
+  if (!inventoryIds.has("K3D")) {
+    const first3DPrint = inventoryRows.findIndex(function(row) {
+      return INITIAL_3D_PRINTS.some(function(product) { return String(row[0]).trim() === product[0]; });
+    });
+    if (first3DPrint === -1) {
+      inventory.appendRow(["", "", "", ""]);
+      inventory.appendRow(["K3D", "KLEINKRAM (3D-DRUCK)", "", ""]);
+    } else {
+      const headerRow = first3DPrint + 2;
+      inventory.insertRowsBefore(headerRow, 1);
+      inventory.getRange(headerRow, 1, 1, 4).setValues([["K3D", "KLEINKRAM (3D-DRUCK)", "", ""]]);
+    }
+  }
+  inventoryRows = inventory.getLastRow() > 1
+    ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
+    : [];
+  INITIAL_3D_PRINTS.forEach(function(product) {
+    const rowIndex = inventoryRows.findIndex(function(row) { return String(row[0]).trim() === product[0]; });
+    if (rowIndex === -1) {
+      const newRow = isNewInventory ? product : [product[0], product[1], product[2], ""];
+      inventory.appendRow(newRow);
+      inventoryRows.push(newRow);
+    }
   });
   setupUnavailableCheckboxes_(inventory);
   inventory.autoResizeColumns(1, 5);
@@ -210,7 +247,7 @@ function sendCurrentLowStockAlerts() {
   const alerts = rows.map(function(row) {
     return { id: String(row[0]), name: String(row[1]), size: String(row[2]), count: Number(row[3]) };
   }).filter(function(item) {
-    return item.id && item.id !== "HNG" && item.id !== "KZN" && Number.isInteger(item.count) && item.count >= 0 && item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
+    return item.id && item.id !== "HNG" && item.id !== "KZN" && item.id !== "K3D" && Number.isInteger(item.count) && item.count >= 0 && item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
   });
   sendLowStockAlerts_(alerts);
   return alerts.length;
@@ -316,7 +353,7 @@ function readInventory_() {
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
   return rows.reduce(function(stock, row) {
     const id = String(row[0]);
-    if (id && id !== "HNG" && id !== "KZN") stock[id] = Number(row[3]);
+    if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") stock[id] = Number(row[3]);
     return stock;
   }, {});
 }
@@ -327,7 +364,7 @@ function readUnavailable_() {
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
   return rows.reduce(function(unavailable, row) {
     const id = String(row[0]);
-    if (id && id !== "HNG" && id !== "KZN") unavailable[id] = row[4] === true;
+    if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") unavailable[id] = row[4] === true;
     return unavailable;
   }, {});
 }
@@ -339,7 +376,7 @@ function setupUnavailableCheckboxes_(sheet) {
   const checkboxRule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
   rows.forEach(function(row, index) {
     const id = String(row[0]).trim();
-    if (!id || id === "HNG" || id === "KZN") return;
+    if (!id || id === "HNG" || id === "KZN" || id === "K3D") return;
     const cell = sheet.getRange(index + 2, 5);
     cell.setDataValidation(checkboxRule);
     if (row[4] === "") cell.setValue(false);
@@ -377,7 +414,7 @@ function reserveOrder_(payload) {
     const rowById = {};
     rows.forEach(function(row, index) {
       const id = String(row[0]);
-      if (!id || id === "HNG" || id === "KZN") return;
+      if (!id || id === "HNG" || id === "KZN" || id === "K3D") return;
       const stock = Number(row[3]);
       if (!Number.isInteger(stock) || stock < 0) throw new Error("Im Bestandsblatt steht eine ungültige Stückzahl.");
       rowById[id] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock, unavailable: unavailableRows[index][0] === true };
