@@ -38,7 +38,7 @@ main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; mar
 .chead { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
 .ct { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .jar.big { flex: none; rotate: -7deg; }
-.chead h3 { font-size: 1.8rem; line-height: 1.1; }
+.chead h3 { font-size: 1.8rem; line-height: 1.1; hyphens: auto; overflow-wrap: normal; word-break: normal; }
 .chip { padding: 1px 12px; border: 2px solid var(--gold); border-radius: 999px; font-size: .95rem; line-height: 1.45; font-weight: 400; }
 .sizes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .card.prod.single .tile { grid-column: 1 / -1; }
@@ -82,7 +82,6 @@ textarea { min-height: 92px; resize: vertical; }
   .card.prod { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
   .card.prod .chead { flex: 1; min-width: 0; margin: 0; }
   .card.prod .ct { min-width: 0; }
-  .card.prod .chead h3 { overflow-wrap: anywhere; }
   .card.prod .sizes { width: 320px; max-width: 48%; min-width: 0; flex: 0 1 320px; }
   .opts { grid-template-columns: 1fr; }
   .two { grid-template-columns: 1fr 1fr; }
