@@ -540,11 +540,11 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4cm x 6cm x 3,5cm", null]] }
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
-    { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "0 0 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
-    { name: "Königin", icon: "bee-queen", iconViewBox: "0 0 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
-    { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", iconViewBox: "0 0 496 400", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
-    { name: "Bienchenvolk", icon: "bee-worker", iconViewBox: "0 0 400 350", icons: [{ id: "bee-worker", viewBox: "0 0 400 350" }, { id: "bee-queen", viewBox: "0 0 480 360" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
-    { name: "Weihnachtsbienchenvolk", displayName: "Weihnachts&shy;bienchen&shy;volk", icon: "bee-christmas", iconViewBox: "0 0 496 400", icons: [{ id: "bee-christmas", viewBox: "0 0 496 400" }, { id: "bee-queen", viewBox: "0 0 480 360" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
+    { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "100 80 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
+    { name: "Königin", icon: "bee-queen", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
+    { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", iconViewBox: "130 70 496 400", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
+    { name: "Bienchenvolk", icon: "bee-worker", iconViewBox: "100 80 400 350", icons: [{ id: "bee-worker", viewBox: "100 80 400 350" }, { id: "bee-queen", viewBox: "120 70 480 360" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
+    { name: "Weihnachtsbienchenvolk", displayName: "Weihnachts&shy;bienchen&shy;volk", icon: "bee-christmas", iconViewBox: "130 70 496 400", icons: [{ id: "bee-christmas", viewBox: "130 70 496 400" }, { id: "bee-queen", viewBox: "120 70 480 360" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
