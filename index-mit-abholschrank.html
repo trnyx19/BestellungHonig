@@ -38,6 +38,8 @@ main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; mar
 .chead { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
 .ct { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .jar.big { flex: none; rotate: -7deg; }
+.bee-pair { display: flex; flex: none; align-items: center; gap: 2px; }
+.bee-pair .jar { width: 40px; }
 .chead h3 { font-size: 1.8rem; line-height: 1.1; hyphens: auto; overflow-wrap: normal; word-break: normal; }
 #category-products-3d-prints .chead h3 { font-size: 1.5rem; }
 .chip { padding: 1px 12px; border: 2px solid var(--gold); border-radius: 999px; font-size: .95rem; line-height: 1.45; font-weight: 400; }
@@ -367,6 +369,39 @@ body { padding-bottom: 32px; }
     <path d="M40 28.5V32M44 28.5V32M48 28.5V32M52 28.5V32M56 28.5V32M60 28.5V32" stroke="#BDA862" stroke-width=".7"/>
     <circle cx="50" cy="12" r="4.6" fill="#F4EAC4" stroke="#BDA862" stroke-width="1.1"/>
   </symbol>
+  <symbol id="bee-worker" viewBox="0 0 100 90">
+    <ellipse cx="39" cy="30" rx="25" ry="13" transform="rotate(-28 39 30)" fill="#D6EEFF" stroke="#7CB8E4" stroke-width="2"/>
+    <ellipse cx="60" cy="29" rx="24" ry="12" transform="rotate(-48 60 29)" fill="#E4F4FF" stroke="#7CB8E4" stroke-width="2"/>
+    <ellipse cx="51" cy="52" rx="31" ry="19" transform="rotate(-12 51 52)" fill="#FFC907" stroke="#3D290B" stroke-width="2"/>
+    <path d="M32 43Q38 38 44 39L39 66Q32 65 28 60ZM49 37Q56 37 62 40L57 69Q50 70 45 68ZM67 41Q74 45 79 50L74 60Q69 65 63 67Z" fill="#222222"/>
+    <circle cx="23" cy="50" r="11" fill="#FFC907" stroke="#3D290B" stroke-width="2"/>
+    <circle cx="20" cy="48" r="1.7" fill="#222222"/>
+    <circle cx="27" cy="48" r="1.7" fill="#222222"/>
+    <path d="M19 38Q15 31 19 28M27 38Q32 31 30 27M80 53 89 58 79 60" fill="none" stroke="#3D290B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="bee-queen" viewBox="0 0 100 90">
+    <ellipse cx="39" cy="30" rx="25" ry="13" transform="rotate(-28 39 30)" fill="#D6EEFF" stroke="#7CB8E4" stroke-width="2"/>
+    <ellipse cx="60" cy="29" rx="24" ry="12" transform="rotate(-48 60 29)" fill="#E4F4FF" stroke="#7CB8E4" stroke-width="2"/>
+    <ellipse cx="52" cy="53" rx="32" ry="20" transform="rotate(-12 52 53)" fill="#FFC907" stroke="#3D290B" stroke-width="2"/>
+    <path d="M32 44Q39 39 45 40L39 68Q32 66 28 61ZM51 38Q58 38 64 41L58 70Q51 71 46 69ZM69 42Q76 46 81 51L75 62Q70 67 64 68Z" fill="#222222"/>
+    <circle cx="23" cy="51" r="11" fill="#FFC907" stroke="#3D290B" stroke-width="2"/>
+    <path d="M14 42 17 30 23 37 29 28 32 43" fill="#FFC907" stroke="#3D290B" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="20" cy="50" r="1.7" fill="#222222"/>
+    <circle cx="27" cy="50" r="1.7" fill="#222222"/>
+    <path d="M80 54 89 59 79 61" fill="none" stroke="#3D290B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="bee-christmas" viewBox="0 0 100 90">
+    <ellipse cx="39" cy="30" rx="25" ry="13" transform="rotate(-28 39 30)" fill="#D6EEFF" stroke="#7CB8E4" stroke-width="2"/>
+    <ellipse cx="60" cy="29" rx="24" ry="12" transform="rotate(-48 60 29)" fill="#E4F4FF" stroke="#7CB8E4" stroke-width="2"/>
+    <ellipse cx="51" cy="53" rx="31" ry="19" transform="rotate(-12 51 53)" fill="#FFC907" stroke="#3D290B" stroke-width="2"/>
+    <path d="M32 44Q38 39 44 40L39 67Q32 66 28 61ZM49 39Q56 39 62 42L57 70Q50 70 45 68ZM67 43Q74 47 79 52L74 62Q69 66 63 68Z" fill="#822045"/>
+    <circle cx="23" cy="52" r="11" fill="#FFC907" stroke="#3D290B" stroke-width="2"/>
+    <path d="M19 41Q18 29 27 23L34 34 31 40Z" fill="#822045" stroke="#3D290B" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M25 25Q29 19 33 23Q36 27 31 31Z" fill="#FFF6BC" stroke="#3D290B" stroke-width="1.5"/>
+    <circle cx="20" cy="51" r="1.7" fill="#222222"/>
+    <circle cx="27" cy="51" r="1.7" fill="#222222"/>
+    <path d="M80 54 89 59 79 61" fill="none" stroke="#3D290B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
   <symbol id="candle-beehive" viewBox="0 0 100 90">
     <ellipse cx="50" cy="86" rx="32" ry="3" fill="#000" opacity=".16"/>
     <rect x="48.7" y="1" width="2.6" height="14" rx="1.1" fill="#FFF" stroke="#CFC8B2" stroke-width=".6"/>
@@ -484,11 +519,11 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4cm x 6cm x 3,5cm", null]] }
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
-    { name: "Arbeiter Bienchen", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
-    { name: "Königin", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
-    { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
-    { name: "Bienchenvolk", note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
-    { name: "Weihnachtsbienchenvolk", displayName: "Weihnachts&shy;bienchen&shy;volk", note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
+    { name: "Arbeiter Bienchen", icon: "bee-worker", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
+    { name: "Königin", icon: "bee-queen", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
+    { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
+    { name: "Bienchenvolk", icons: ["bee-worker", "bee-queen"], note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
+    { name: "Weihnachtsbienchenvolk", displayName: "Weihnachts&shy;bienchen&shy;volk", icons: ["bee-christmas", "bee-queen"], note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
@@ -528,9 +563,12 @@ PRODUCT_GROUPS.forEach(group => {
 PRODUCTS.forEach(p => {
   const g = document.createElement("article");
   const icon = p.icon || "jar";
+  const headerIcon = p.icons
+    ? '<span class="bee-pair" aria-hidden="true">' + p.icons.map(function(id) { return '<svg class="jar" viewBox="0 0 100 90"><use href="#' + id + '"/></svg>'; }).join("") + '</span>'
+    : '<svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg>';
   g.className = "card prod" + (p.sizes.length === 1 ? " single" : "");
   g.style.setProperty("--honey", p.honey);
-  g.innerHTML = '<div class="chead"><svg class="jar big" width="78" viewBox="0 0 100 90" aria-hidden="true"><use href="#' + icon + '"/></svg><div class="ct"><h3>' + (p.displayName || p.name) + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
+  g.innerHTML = '<div class="chead">' + headerIcon + '<div class="ct"><h3>' + (p.displayName || p.name) + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
   p.sizes.forEach(([id, size, price]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
     items.push({ id, label, price, priceNote: p.priceNote });
