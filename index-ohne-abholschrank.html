@@ -533,10 +533,10 @@ const PRODUCT_GROUPS = [
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
     { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "100 80 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", 0.20]] },
-    { name: "Königin", icon: "bee-queen", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", 0.35]] },
+    { name: "Königin", icon: "bee-queen", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", 0.40]] },
     { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", iconViewBox: "130 70 496 400", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", 0.3]] },
-    { name: "Bienchenvolk", icon: "bee-queen", iconViewBox: "120 70 480 360", icons: [{ id: "bee-queen", viewBox: "120 70 480 360" }, { id: "bee-worker", viewBox: "100 80 400 350" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Ein Volk", 1.20]] },
-    { name: "Weihnachtsbienchenvolk", displayName: "Weihnachts&shy;bienchen&shy;volk", icon: "bee-worker", iconViewBox: "100 80 400 350", icons: [{ id: "bee-queen", viewBox: "120 70 480 360" }, { id: "bee-christmas", viewBox: "130 70 496 400" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Ein Volk", 1.60]] }
+    { name: "Bienchenvolk", icon: "bee-queen", iconViewBox: "120 70 480 360", icons: [{ id: "bee-queen", viewBox: "120 70 480 360" }, { id: "bee-worker", viewBox: "100 80 400 350" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#E9BF68", sizes: [["volk3d", "Ein Volk", 1.30]] },
+    { name: "Weihnachtsbienchenvolk", displayName: "Weihnachts&shy;bienchen&shy;volk", icon: "bee-worker", iconViewBox: "100 80 400 350", icons: [{ id: "bee-queen", viewBox: "120 70 480 360" }, { id: "bee-christmas", viewBox: "130 70 496 400" }], note: "1x Königin, 4x Arbeiterbienchen", honey: "#D7A950", sizes: [["weivol3d", "Ein Volk", 1.65]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
