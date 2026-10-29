@@ -26,7 +26,9 @@ const INITIAL_CANDLES = [
 const INITIAL_3D_PRINTS = [
   ["arb3d", "Arbeiter Bienchen", "Stück", 0],
   ["koe3d", "Königin", "Stück", 0],
-  ["wei3d", "Weihnachtsbienchen", "Stück", 0]
+  ["wei3d", "Weihnachtsbienchen", "Stück", 0],
+  ["volk3d", "Bienchenvolk", "Stück", 0],
+  ["weivol3d", "Weihnachtsbienchenvolk", "Stück", 0]
 ];
 
 function setup() {

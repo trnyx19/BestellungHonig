@@ -482,9 +482,11 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", priceNote: "Kerzenpreise werden ergänzt.", sizes: [["weiwi", "4cm x 6cm x 3,5cm", null]] }
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
-    { name: "Arbeiter Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
-    { name: "Königin", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
-    { name: "Weihnachtsbienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] }
+    { name: "Arbeiter Bienchen", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück", null]] },
+    { name: "Königin", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück", null]] },
+    { name: "Weihnachtsbienchen", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück", null]] },
+    { name: "Bienchenvolk", note: "4x Arbeiter Bienchen, 1x Königin", honey: "#E9BF68", sizes: [["volk3d", "Stück", null]] },
+    { name: "Weihnachtsbienchenvolk", note: "4x Arbeiter Bienchen, 1x Königin", honey: "#D7A950", sizes: [["weivol3d", "Stück", null]] }
   ] }
 ];
 const PRODUCTS = PRODUCT_GROUPS.flatMap(group => group.products.map(product => ({ ...product, group: group.id })));
