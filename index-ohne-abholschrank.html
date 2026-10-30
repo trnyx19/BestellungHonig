@@ -167,7 +167,7 @@ body { padding-bottom: 32px; }
     #done .technical-message { font-size: 1.1rem; line-height: 1.6; max-width: 48ch; }
     #done .technical-message a { display: inline-block; margin-top: 6px; color: #822045; font-size: 1.08em; font-weight: 700; text-decoration: none; }
 .done-quantity { display: flex; align-items: center; justify-content: center; font-weight: 600; margin-bottom: 4px !important; }
-.lookup-trigger { display: block; margin: 8px auto 14px; padding: 7px 10px; border: 0; background: transparent; color: var(--y); font: .95rem/1.4 system-ui, sans-serif; text-decoration: underline; cursor: pointer; }
+.lookup-trigger { display: block; width: min(240px, 100%); margin: 8px auto 14px; padding: 9px 18px; border: 0; border-radius: 999px; background: var(--gold); color: var(--b); font: 1.2rem Lobster, cursive; cursor: pointer; }
 .lookup-submit { display: inline-flex; align-items: center; justify-content: center; padding: 10px 22px; border: 2px solid var(--b); border-radius: 999px; background: var(--gold); color: var(--b); font: 1.15rem Lobster, cursive; cursor: pointer; }
 .lookup-dialog { width: min(560px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 24px; border: 2px solid var(--gold); border-radius: 18px; background: var(--card); color: var(--b); box-shadow: 0 8px 0 rgba(0,0,0,.2); }
 .lookup-dialog::backdrop { background: rgba(25, 16, 8, .68); }
@@ -505,6 +505,7 @@ body { padding-bottom: 32px; }
       </div>
     </div>
   </div>
+  <button class="lookup-trigger" id="lookup-open" type="button">Bestellung abrufen</button>
 
   <dialog class="lookup-dialog" id="order-lookup-dialog" aria-labelledby="lookup-title">
     <h2 id="lookup-title">Bestellung abrufen</h2>
@@ -546,7 +547,6 @@ body { padding-bottom: 32px; }
   <footer class="foot">
     <img id="logo2" width="84" height="84" alt="" aria-hidden="true">
     <p><b class="lob">Landimkerei Diezinger</b><br>regionale Qualität aus Täfertingen</p>
-    <button class="lookup-trigger" id="lookup-open" type="button">Bestellung abrufen</button>
     <a class="link" href="https://linktr.ee/landimkereidiezinger" target="_blank" rel="noopener noreferrer">Mehr von uns auf Linktree</a>
     <figure class="qr">
       <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbwAAAG8AQMAAACffoKcAAAABlBMVEX/4zeCIEUyqDFHAAAB5ElEQVR42u2bQW4DIQxF7Sp7zw16/2PNDeAE7gIGw2SyaaXixfuKomTCUyTry7INiCCEEEIIIZRePlSkvS/Py7JARES+fvtXgIB/A6s2tW/6HXbtD9cFRBVwIzhyph7iRcTc3VXV3W8LiCpgEtCLSFU9RETEXPX6THAAk4HNmX6qHuKnijnBAUwAvsKis12bP6u6iD8tIKqA20DrXX7LqH5qLwaaY8uygKgC7gDlsV7tpvWbP4kq4H6vdn/a5Uzz9hq9f0utYsxXAfd7dRh1TP7lthcwTEtUATPk1RKfw5nmc21AVAE351WJMjWelPhKXgVM4dUPiXQZrhr7VoApvBo16joHmFsqzq4Abvfq3EaNLPpeA+BVwFRzgHkgMNt4GJioAm7OqyVeYdGRS81HTUtUAXd61TxGUua3gUBsBDCzAkxQAzw2Vj21XtmVOQBghhpgbrJG7x+zLLwKmAS09TpVjQOAfupbY0VUAbOcsxq2nLst7gYCpqhXb/dY10Mst0MCRBUw0T1Wva6uXMVAv3JVuccKmGIOEN3T2Pq39WQgvRVgJq/GcNWWXYB1M4uoAv4z+Pr0g4p4VZ/LABGvB1EF3J5XlyGAPdwFoLcCTDcHKKt7p7EAXgXc7lWEEEIIIYRS6gfjGiSDxtoXNQAAAABJRU5ErkJggg==" width="156" height="156" alt="QR-Code zum Linktree der Landimkerei Diezinger">
