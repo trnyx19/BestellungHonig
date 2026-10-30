@@ -168,6 +168,21 @@ body { padding-bottom: 32px; }
   #done .technical-message { font-size: 1.1rem; line-height: 1.6; max-width: 48ch; }
   #done .technical-message a { display: inline-block; margin-top: 6px; color: #822045; font-size: 1.08em; font-weight: 700; text-decoration: none; }
 .done-quantity { display: flex; align-items: center; justify-content: center; font-weight: 600; margin-bottom: 4px !important; }
+.lookup-trigger, .lookup-submit { display: inline-flex; align-items: center; justify-content: center; padding: 10px 22px; border: 2px solid var(--b); border-radius: 999px; background: var(--gold); color: var(--b); font: 1.15rem Lobster, cursive; cursor: pointer; }
+.lookup-dialog { width: min(560px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 24px; border: 2px solid var(--gold); border-radius: 18px; background: var(--card); color: var(--b); box-shadow: 0 8px 0 rgba(0,0,0,.2); }
+.lookup-dialog::backdrop { background: rgba(25, 16, 8, .68); }
+.lookup-dialog h2 { margin: 0 0 8px; font: 2rem Lobster, cursive; }
+.lookup-dialog p { margin: 0 0 14px; }
+.lookup-dialog form { display: grid; gap: 8px; }
+.lookup-dialog label { margin-top: 6px; font-weight: 700; }
+.lookup-dialog input { width: 100%; padding: 11px 12px; border: 2px solid var(--b); border-radius: 10px; background: #FFFBE0; color: var(--b); font: inherit; }
+.lookup-dialog .lookup-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.lookup-close { padding: 9px 18px; border: 2px solid var(--b); border-radius: 999px; background: transparent; color: var(--b); font: inherit; cursor: pointer; }
+.lookup-feedback { margin: 14px 0 0 !important; font-weight: 700; }
+.lookup-details { display: grid; grid-template-columns: minmax(110px, .35fr) minmax(0, 1fr); gap: 7px 12px; margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--gold); }
+.lookup-details[hidden] { display: none; }
+.lookup-details dt { font-weight: 700; }
+.lookup-details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 #honey-order {
   position: relative;
   isolation: isolate;
@@ -454,6 +469,7 @@ body { padding-bottom: 32px; }
     <h1>Bestellung aus der Imkerei</h1>
     <p>Willkommen! Hier füllst du alle wichtigen Infos zu deiner Bestellung aus. Bitte alles gründlich durchlesen. Bei Problemen oder Anmerkungen schreib uns an landimkereidiezinger.bestellung@gmx.de.</p>
     <div class="hint">Bestellungen, die vor 20 Uhr abgeschickt werden, sind meistens am nächsten Tag abholbar.</div>
+    <button class="lookup-trigger" id="lookup-open" type="button">Bestellung abrufen</button>
   </header>
 </div>
 
@@ -499,12 +515,40 @@ body { padding-bottom: 32px; }
     </div>
   </div>
 
+  <dialog class="lookup-dialog" id="order-lookup-dialog" aria-labelledby="lookup-title">
+    <h2 id="lookup-title">Bestellung abrufen</h2>
+    <p>Gib deine Bestellnummer und die bei der Bestellung verwendete E-Mail-Adresse ein.</p>
+    <form id="order-lookup-form">
+      <label for="lookup-number-input">Bestellnummer</label>
+      <input id="lookup-number-input" type="text" autocomplete="off" autocapitalize="characters" maxlength="12" pattern="H-[A-Fa-f0-9]{10}" placeholder="H-0123456789" required>
+      <label for="lookup-email-input">E-Mail-Adresse</label>
+      <input id="lookup-email-input" type="email" autocomplete="email" maxlength="254" required>
+      <div class="lookup-actions">
+        <button class="lookup-submit" id="lookup-submit" type="submit">Suchen</button>
+        <button class="lookup-close" id="lookup-close" type="button">Schließen</button>
+      </div>
+    </form>
+    <p class="lookup-feedback" id="lookup-feedback" role="status" aria-live="polite" hidden></p>
+    <dl class="lookup-details" id="lookup-details" hidden>
+      <dt>Bestellnummer</dt><dd id="lookup-number-value"></dd>
+      <dt>Status</dt><dd id="lookup-status-value"></dd>
+      <dt>Name</dt><dd id="lookup-name-value"></dd>
+      <dt>E-Mail</dt><dd id="lookup-email-value"></dd>
+      <dt>Bestellt</dt><dd id="lookup-items-value"></dd>
+      <dt>Abholung</dt><dd id="lookup-pickup-value"></dd>
+      <dt>Wunschtermin</dt><dd id="lookup-date-value"></dd>
+      <dt>Wünsche</dt><dd id="lookup-note-value"></dd>
+    </dl>
+  </dialog>
+
   <section class="card" id="done" hidden>
     <svg class="jar" width="120" viewBox="0 0 100 90" aria-hidden="true" style="margin:0 auto"><use href="#jar"/></svg>
     <h2>Danke!</h2>
     <p class="done-quantity" role="status"><span class="cnt" id="done-count"></span><span id="done-count-label"></span></p>
+    <p>Deine Bestellnummer: <strong id="done-order-number"></strong></p>
     <p>Vielen Dank für deine Bestellung! Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist! Falls du deine Bestellung am Abholschrank abholst, ist eine Anleitung im Anhang.</p>
     <p class="email-auth-note">Echte E-Mails kommen nur von gerhard-diez@gmx.de oder lukasdiezinger3@gmail.com. Andere Absender sind nicht von uns.</p>
+    <button class="again" id="lookup-open-from-done" type="button">Bestellung abrufen</button>
     <button class="again" type="button" onclick="location.reload()">Neue Bestellung</button>
   </section>
   <div class="hexrow" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -748,11 +792,98 @@ function reserveStock(order) {
   });
 }
 
+function submitOrderLookup(order) {
+  return new Promise((resolve, reject) => {
+    const frame = $("order-lookup-frame");
+    const form = document.createElement("form");
+    const requestId = newOrderId();
+    form.method = "post";
+    form.action = STOCK_API;
+    form.target = frame.name;
+    form.hidden = true;
+    const input = document.createElement("input");
+    input.name = "payload";
+    input.value = JSON.stringify({ action: "lookupOrder", requestId, ...order });
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    const timeout = setTimeout(() => finish(new Error("Die Abfrage dauert zu lange. Bitte versuche es erneut.")), 15000);
+    const onMessage = event => {
+      if (event.source !== frame.contentWindow || !event.data || event.data.type !== "orderLookupResult" || event.data.requestId !== requestId) return;
+      finish(null, event.data);
+    };
+    const finish = (error, result) => {
+      clearTimeout(timeout);
+      window.removeEventListener("message", onMessage);
+      form.remove();
+      if (error) reject(error);
+      else resolve(result);
+    };
+    window.addEventListener("message", onMessage);
+    form.submit();
+  });
+}
+
+function showLookupOrder(order) {
+  const values = {
+    "lookup-number-value": order.customerOrderNumber,
+    "lookup-status-value": order.status,
+    "lookup-name-value": order.name,
+    "lookup-email-value": order.email,
+    "lookup-items-value": order.items,
+    "lookup-pickup-value": order.pickup,
+    "lookup-date-value": order.date || "Kein Wunschtermin angegeben",
+    "lookup-note-value": order.note || "Keine Wünsche angegeben"
+  };
+  Object.entries(values).forEach(([id, value]) => { $(id).textContent = value; });
+  $("lookup-details").hidden = false;
+}
+
+$("lookup-open").addEventListener("click", () => $("order-lookup-dialog").showModal());
+$("lookup-open-from-done").addEventListener("click", () => $("order-lookup-dialog").showModal());
+$("lookup-close").addEventListener("click", () => $("order-lookup-dialog").close());
+$("order-lookup-dialog").addEventListener("close", () => {
+  $("order-lookup-form").reset();
+  $("lookup-feedback").hidden = true;
+  $("lookup-details").hidden = true;
+  $("lookup-details").querySelectorAll("dd").forEach(value => { value.textContent = ""; });
+});
+$("order-lookup-dialog").addEventListener("click", event => {
+  if (event.target === $("order-lookup-dialog")) $("order-lookup-dialog").close();
+});
+$("order-lookup-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const feedback = $("lookup-feedback");
+  const button = $("lookup-submit");
+  feedback.hidden = true;
+  $("lookup-details").hidden = true;
+  button.disabled = true;
+  try {
+    const result = await submitOrderLookup({
+      customerOrderNumber: $("lookup-number-input").value.trim().toUpperCase(),
+      email: $("lookup-email-input").value.trim()
+    });
+    if (!result.ok) throw new Error(result.message || "Bestellung nicht gefunden.");
+    showLookupOrder(result.order);
+    feedback.textContent = "Bestellung gefunden.";
+  } catch (error) {
+    feedback.textContent = error.message || "Die Bestellung konnte nicht abgerufen werden.";
+  } finally {
+    feedback.hidden = false;
+    button.disabled = false;
+  }
+});
+
 const orderFrame = document.createElement("iframe");
 orderFrame.id = "stock-order-frame";
 orderFrame.name = "stock-order-frame";
 orderFrame.hidden = true;
 document.body.appendChild(orderFrame);
+const orderLookupFrame = document.createElement("iframe");
+orderLookupFrame.id = "order-lookup-frame";
+orderLookupFrame.name = "order-lookup-frame";
+orderLookupFrame.hidden = true;
+document.body.appendChild(orderLookupFrame);
 
 $("pickup-fs").addEventListener("change", e => {
   const input = e.target;
@@ -876,6 +1007,7 @@ $("send").onclick = async () => {
     }
     pendingOrderId = null;
     applyStock(result.stock, result.lowStockThreshold, result.unavailable);
+    $("done-order-number").textContent = result.customerOrderNumber || "Wird geladen";
     try { sessionStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now())); } catch (error) {}
 
     $("f").hidden = true; $("bar").hidden = true;
