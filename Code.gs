@@ -228,6 +228,12 @@ function doPost(e) {
         console.error("Bestell-E-Mail konnte nicht gesendet werden: " + emailError.message);
         sendTelegramMessage_("Bestell-E-Mail konnte nicht gesendet werden. Bestell-ID: " + orderId + ". Fehler: " + emailError.message);
       }
+      try {
+        sendCustomerOrderConfirmation_(result.orderDetails);
+      } catch (customerEmailError) {
+        console.error("Kunden-Bestätigung konnte nicht gesendet werden: " + customerEmailError.message);
+        sendTelegramMessage_("Kunden-Bestätigung konnte nicht gesendet werden. Bestellnummer: " + result.customerOrderNumber + ". Fehler: " + customerEmailError.message);
+      }
     }
     return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -326,6 +332,30 @@ function sendNewOrderEmail_(order) {
     name: ORDER_SENDER_NAME,
     replyTo: order.email,
     subject: ORDER_EMAIL_SUBJECT,
+    body: lines.join("\n")
+  });
+}
+
+function sendCustomerOrderConfirmation_(order) {
+  if (!order || !order.email) return;
+  const lines = [
+    "Servus " + order.name + ",",
+    "",
+    "vielen Dank für deine Bestellung. Wir haben sie erhalten.",
+    "",
+    "Bestellnummer: " + order.customerOrderNumber,
+    "Bestellte Artikel: " + order.itemSummary,
+    "Abholung: " + (order.pickup || "Keine Angabe"),
+    "Wunschtermin: " + (order.date || "Kein Wunschtermin angegeben"),
+    "Status: " + ORDER_STATUSES[0]
+  ];
+  if (order.note) lines.push("Wünsche: " + order.note);
+  lines.push("", "Wir melden uns, sobald deine Bestellung zur Abholung bereit ist.", "", "Viele Grüße", "Landimkerei Diezinger");
+
+  MailApp.sendEmail({
+    to: order.email,
+    name: "Landimkerei Diezinger",
+    subject: "Bestellbestätigung " + order.customerOrderNumber,
     body: lines.join("\n")
   });
 }
