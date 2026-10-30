@@ -350,11 +350,19 @@ function sendCustomerOrderConfirmation_(order) {
     "Status: " + ORDER_STATUSES[0]
   ];
   if (order.note) lines.push("Wünsche: " + order.note);
-  lines.push("", "Wir melden uns, sobald deine Bestellung zur Abholung bereit ist. Währenddessen kannst du deinen Bestellstatus auf der Bestellungsseite abrufen. Scrolle dazu auf der Seite nach unten bis du den "Bestellung abrufen" Knopf siehst, klicke drauf. Gebe dann deine Bestellnummer ein und deine Email. Es dauert ein paar Sekunden, dann sollte deine Bestellung angezeigt werden.", "", "Viele Grüße", "Landimkerei Diezinger");
-
+  lines.push(
+    "",
+    "Wir melden uns, sobald deine Bestellung zur Abholung bereit ist.",
+    "Bestellstatus abrufen: Scrolle auf der Bestellseite nach unten zu „Bestellung abrufen“, klicke darauf und gib Bestellnummer sowie E-Mail-Adresse ein. Nach einigen Sekunden wird deine Bestellung angezeigt.",
+    "",
+    "Viele Grüße",
+    "Landimkerei Diezinger",
+    "",
+    "Hinweis: Diese E-Mail wurde automatisch erstellt. Bitte antworte nicht darauf. Bei Fragen schreibe an landimkereidiezinger.bestellung@gmx.de. Eine Antwort erhältst du persönlich von gerhard-diez@gmx.de oder lukasdiezinger3@gmail.com."
+  );
   MailApp.sendEmail({
     to: order.email,
-    name: "Landimkerei Diezinger",
+    name: "Lukas von der Landimkerei Diezinger",
     subject: "Bestellbestätigung " + order.customerOrderNumber,
     body: lines.join("\n")
   });
