@@ -356,13 +356,13 @@ function sendCustomerOrderConfirmation_(order) {
     "Bestellstatus abrufen: Scrolle auf der Bestellseite nach unten zu „Bestellung abrufen“, klicke darauf und gib Bestellnummer sowie E-Mail-Adresse ein. Nach einigen Sekunden wird deine Bestellung angezeigt.",
     "",
     "Viele Grüße",
-    "Landimkerei Diezinger",
+    "Lukas von der Landimkerei Diezinger",
     "",
     "Hinweis: Diese E-Mail wurde automatisch erstellt. Bitte antworte nicht darauf. Bei Fragen schreibe an landimkereidiezinger.bestellung@gmx.de. Eine Antwort erhältst du persönlich von gerhard-diez@gmx.de oder lukasdiezinger3@gmail.com."
   );
   MailApp.sendEmail({
     to: order.email,
-    name: "Lukas von der Landimkerei Diezinger",
+    name: "Landimkerei Diezinger",
     subject: "Bestellbestätigung " + order.customerOrderNumber,
     body: lines.join("\n")
   });
