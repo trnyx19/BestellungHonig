@@ -350,7 +350,7 @@ function sendCustomerOrderConfirmation_(order) {
     "Status: " + ORDER_STATUSES[0]
   ];
   if (order.note) lines.push("Wünsche: " + order.note);
-  lines.push("", "Wir melden uns, sobald deine Bestellung zur Abholung bereit ist.", "", "Viele Grüße", "Landimkerei Diezinger");
+  lines.push("", "Wir melden uns, sobald deine Bestellung zur Abholung bereit ist. Währenddessen kannst du deinen Bestellstatus auf der Bestellungsseite abrufen. Scrolle dazu auf der Seite nach unten bis du den "Bestellung abrufen" Knopf siehst, klicke drauf. Gebe dann deine Bestellnummer ein und deine Email. Es dauert ein paar Sekunden, dann sollte deine Bestellung angezeigt werden.", "", "Viele Grüße", "Landimkerei Diezinger");
 
   MailApp.sendEmail({
     to: order.email,
