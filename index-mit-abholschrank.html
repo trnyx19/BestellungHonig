@@ -810,7 +810,8 @@ function submitOrderLookup(order) {
 
     const timeout = setTimeout(() => finish(new Error("Die Abfrage dauert zu lange. Bitte versuche es erneut.")), 15000);
     const onMessage = event => {
-      if (event.source !== frame.contentWindow || !event.data || event.data.type !== "orderLookupResult" || event.data.requestId !== requestId) return;
+      const trustedOrigin = event.origin === "https://script.google.com" || event.origin.endsWith("script.googleusercontent.com");
+      if (!trustedOrigin || !event.data || event.data.type !== "orderLookupResult" || event.data.requestId !== requestId) return;
       finish(null, event.data);
     };
     const finish = (error, result) => {

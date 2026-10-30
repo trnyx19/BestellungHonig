@@ -667,6 +667,6 @@ function createOrderLookupResponse_(result) {
     .replace(/&/g, "\\u0026")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
-  return HtmlService.createHtmlOutput("<!doctype html><script>window.parent.postMessage(" + message + ", '*');</script>")
+  return HtmlService.createHtmlOutput("<!doctype html><script>window.top.postMessage(" + message + ", '*');</script>")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
