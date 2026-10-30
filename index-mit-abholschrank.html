@@ -51,7 +51,7 @@ main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; mar
 .tl { display: flex; flex-direction: column; line-height: 1.1; }
 .size { font: 1.45rem Lobster, cursive; }
 .price { font-size: .95rem; line-height: 1.45; margin-top: 2px; }
-.availability { grid-column: 1 / -1; width: fit-content; max-width: 100%; padding: 3px 6px; border: 1px solid currentColor; border-radius: 999px; font: 600 .72rem/1.3 system-ui, sans-serif; white-space: nowrap; }
+.availability { grid-column: 1 / -1; width: fit-content; max-width: 100%; padding: 3px 6px; border: 1px solid currentColor; border-radius: 999px; font: 600 .72rem/1.3 system-ui, sans-serif; white-space: normal; overflow-wrap: anywhere; }
 .availability.loading { color: #5B5860; background: #F0EEF1; }
 .availability.available { color: #236A3B; background: #E5F3E8; }
 .availability.few { color: #785000; background: #FFF0C2; }
@@ -164,7 +164,7 @@ body { padding-bottom: 32px; }
 #done { text-align: center; padding: 28px 22px 30px; }
 #done h2 { font-size: 2.6rem; margin: 8px 0 10px; }
 #done p { margin: 0 auto; max-width: 36ch; }
-#done .email-auth-note { max-width: 100%; margin-top: 12px; font: .82rem/1.5 system-ui, sans-serif; }
+#done .email-auth-note { max-width: 100%; margin-top: 12px; font: .82rem/1.5 system-ui, sans-serif; white-space: normal !important; overflow-wrap: anywhere; }
   #done .technical-message { font-size: 1.1rem; line-height: 1.6; max-width: 48ch; }
   #done .technical-message a { display: inline-block; margin-top: 6px; color: #822045; font-size: 1.08em; font-weight: 700; text-decoration: none; }
 .done-quantity { display: flex; align-items: center; justify-content: center; font-weight: 600; margin-bottom: 4px !important; }
@@ -686,7 +686,7 @@ function applyPrices(prices) {
   render();
 }
 
-function applyStock(stock, lowStockThreshold = 6, unavailable = {}) {
+function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableReasons = {}) {
   const labels = { available: "Verfügbar", few: "Wenig verfügbar", soldout: "Ausverkauft", unavailable: "Nicht verfügbar" };
   const threshold = Number.isInteger(lowStockThreshold) && lowStockThreshold >= 0 ? lowStockThreshold : 6;
   items.forEach(item => {
@@ -706,7 +706,10 @@ function applyStock(stock, lowStockThreshold = 6, unavailable = {}) {
     tile.dataset.stockStatus = status;
     tile.dataset.stockCount = String(count);
     badge.className = "availability " + status;
-    badge.textContent = isUnavailable || status === "soldout" ? labels[status] : labels[status] + " (" + count + ")";
+    const unavailableReason = String(unavailableReasons[item.id] || "").trim();
+    badge.textContent = isUnavailable
+      ? labels.unavailable + (unavailableReason ? ": " + unavailableReason : "")
+      : status === "soldout" ? labels.soldout : labels[status] + " (" + count + ")";
     tile.querySelector('button[data-d="-1"]').disabled = isUnavailable || qty[item.id] === 0;
     tile.querySelector('button[data-d="1"]').disabled = isUnavailable || status === "soldout" || qty[item.id] >= Math.min(item.maxQuantity, count);
   });
@@ -722,7 +725,7 @@ function loadStock(orderId = "") {
     window[callback] = result => {
       cleanup();
       if (!result || !result.ok) return reject(new Error(result && result.message || "Bestand konnte nicht geladen werden."));
-      try { applyStock(result.stock, result.lowStockThreshold, result.unavailable); applyPrices(result.prices); resolve(result); }
+      try { applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons); applyPrices(result.prices); resolve(result); }
       catch (error) { reject(error); }
     };
     script.onerror = () => { cleanup(); reject(new Error("Bestand konnte nicht geladen werden.")); };
@@ -1004,7 +1007,7 @@ $("send").onclick = async () => {
       throw new Error(result.message || "Die Bestellung konnte nicht angenommen werden.");
     }
     pendingOrderId = null;
-    applyStock(result.stock, result.lowStockThreshold, result.unavailable);
+    applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons);
     $("done-order-number").textContent = result.customerOrderNumber || "Wird geladen";
     try { sessionStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now())); } catch (error) {}
 
