@@ -10,10 +10,17 @@ const ORDER_STATUSES = ["Eingegangen", "In Bearbeitung", "Bereit zur Abholung", 
 const UNAVAILABLE_REASONS = [
   "Nicht verfügbar",
   "Wartungsarbeiten - Website",
-  "Ausverkauft",
-  "Vorübergehend nicht lieferbar",
-  "Saisonbedingt nicht verfügbar",
+  "Vorübergehend nicht vorrätig",
+  "Saisonpause",
+  "Neue Ernte noch nicht verfügbar",
+  "Verkaufsstart steht noch aus",
+  "Produktion vorübergehend pausiert",
+  "Rohstoffe oder Material fehlen",
   "Qualitätsprüfung",
+  "Produkt wird überarbeitet",
+  "Preis- oder Produktdaten werden aktualisiert",
+  "Nicht mehr im Sortiment",
+  "Abholung vorübergehend nicht möglich",
   "Sonstiger Grund"
 ];
 const INITIAL_PRICES = {
@@ -515,12 +522,21 @@ function setupUnavailableCheckboxes_(sheet) {
 function setupUnavailableReasonDropdowns_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
-  const rows = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  const rows = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
   const reasonRule = SpreadsheetApp.newDataValidation().requireValueInList(UNAVAILABLE_REASONS, true).build();
+  const reasonMigrations = {
+    "Ausverkauft": "Nicht verfügbar",
+    "Bestand aufgebraucht": "Vorübergehend nicht vorrätig",
+    "Vorübergehend nicht lieferbar": "Vorübergehend nicht vorrätig",
+    "Saisonbedingt nicht verfügbar": "Saisonpause"
+  };
   rows.forEach(function(row, index) {
     const id = String(row[0]).trim();
     if (!id || id === "HNG" || id === "KZN" || id === "K3D") return;
-    sheet.getRange(index + 2, 6).setDataValidation(reasonRule);
+    const reasonCell = sheet.getRange(index + 2, 6);
+    const oldReason = String(row[5] || "").trim();
+    if (Object.prototype.hasOwnProperty.call(reasonMigrations, oldReason)) reasonCell.setValue(reasonMigrations[oldReason]);
+    reasonCell.setDataValidation(reasonRule);
   });
 }
 

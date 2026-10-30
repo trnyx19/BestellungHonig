@@ -707,9 +707,11 @@ function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableR
     tile.dataset.stockCount = String(count);
     badge.className = "availability " + status;
     const unavailableReason = String(unavailableReasons[item.id] || "").trim();
-    badge.textContent = isUnavailable
-      ? labels.unavailable + (unavailableReason ? ": " + unavailableReason : "")
-      : status === "soldout" ? labels.soldout : labels[status] + " (" + count + ")";
+    const hasSpecificReason = unavailableReason && unavailableReason !== labels.unavailable;
+    badge.textContent = isUnavailable && hasSpecificReason
+      ? labels.unavailable + " · " + unavailableReason
+      : count === 0 ? labels.soldout
+      : isUnavailable ? labels.unavailable : labels[status] + " (" + count + ")";
     tile.querySelector('button[data-d="-1"]').disabled = isUnavailable || qty[item.id] === 0;
     tile.querySelector('button[data-d="1"]').disabled = isUnavailable || status === "soldout" || qty[item.id] >= Math.min(item.maxQuantity, count);
   });
