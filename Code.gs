@@ -6,6 +6,10 @@ const ORDER_NOTIFICATION_EMAIL = "gerhard-diez@gmx.de, lukasdiezinger3@gmail.com
 const ORDER_SENDER_NAME = "Neue Bestellung";
 const ORDER_EMAIL_SUBJECT = "[HONIG-BESTELLUNG] Neue Bestellung";
 const MAX_ORDER_QUANTITIES = { arb3d: 3, koe3d: 3, wei3d: 3, volk3d: 5, weivol3d: 5 };
+const INITIAL_PRICES = {
+  cf250: 3, cf500: 7, cs250: 3, cs500: 7, fs250: 3, fs500: 7, wb250: 3, wb500: 7,
+  wh1: 3, arb3d: 0.20, koe3d: 0.40, wei3d: 0.30, volk3d: 1.30, weivol3d: 1.65
+};
 
 const INITIAL_PRODUCTS = [
   ["cf250", "Cremiger Honig Frühling", "250 g", 10],
@@ -38,10 +42,11 @@ function setup() {
   if (!inventory) inventory = spreadsheet.insertSheet(INVENTORY_SHEET);
   const isNewInventory = inventory.getLastRow() === 0;
   if (isNewInventory) {
-    inventory.getRange(1, 1, 1, 5).setValues([["ID", "Sorte", "Größe", "Bestand", "Nicht verfügbar"]]);
+    inventory.getRange(1, 1, 1, 6).setValues([["ID", "Sorte", "Größe", "Bestand", "Nicht verfügbar", "Preis (€)"]]);
     inventory.setFrozenRows(1);
   }
   inventory.getRange(1, 5).setValue("Nicht verfügbar");
+  inventory.getRange(1, 6).setValue("Preis (€)");
   let inventoryRows = inventory.getLastRow() > 1
     ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
     : [];
@@ -125,8 +130,13 @@ function setup() {
       inventoryRows.push(newRow);
     }
   });
+  initializeProductPrices_(inventory);
+  inventory.getRange(1, 6).setNote("Wabenhonig: Preis je 100 g; bei allen anderen Artikeln Stückpreis.");
+  if (inventory.getLastRow() > 1) {
+    inventory.getRange(2, 6, inventory.getLastRow() - 1, 1).setNumberFormat('0.00 "€"');
+  }
   setupUnavailableCheckboxes_(inventory);
-  inventory.autoResizeColumns(1, 5);
+  inventory.autoResizeColumns(1, 6);
 
   let orders = spreadsheet.getSheetByName(ORDERS_SHEET);
   if (!orders) orders = spreadsheet.insertSheet(ORDERS_SHEET);
@@ -173,6 +183,7 @@ function doGet(e) {
       accepted: accepted,
       outcomeReady: outcomeReady,
       stock: stock,
+      prices: readPrices_(),
       unavailable: readUnavailable_(),
       lowStockThreshold: LOW_STOCK_THRESHOLD,
       message: orderMessage
@@ -359,6 +370,37 @@ function readInventory_() {
     if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") stock[id] = Number(row[3]);
     return stock;
   }, {});
+}
+
+function readPrices_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INVENTORY_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+  return rows.reduce(function(prices, row) {
+    const id = String(row[0]).trim();
+    if (!id || id === "HNG" || id === "KZN" || id === "K3D") return prices;
+    const rawPrice = row[5];
+    const price = rawPrice === "" || rawPrice == null
+      ? null
+      : Number(String(rawPrice).replace(/\s|€/g, "").replace(",", "."));
+    prices[id] = Number.isFinite(price) && price >= 0 ? price : null;
+    return prices;
+  }, {});
+}
+
+function initializeProductPrices_(sheet) {
+  const properties = PropertiesService.getScriptProperties();
+  if (properties.getProperty("PRODUCT_PRICES_INITIALIZED") === "true") return;
+  if (sheet.getLastRow() > 1) {
+    const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
+    rows.forEach(function(row, index) {
+      const id = String(row[0]).trim();
+      if (Object.prototype.hasOwnProperty.call(INITIAL_PRICES, id) && (row[5] === "" || row[5] == null)) {
+        sheet.getRange(index + 2, 6).setValue(INITIAL_PRICES[id]);
+      }
+    });
+  }
+  properties.setProperty("PRODUCT_PRICES_INITIALIZED", "true");
 }
 
 function readUnavailable_() {
