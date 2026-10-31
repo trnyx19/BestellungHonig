@@ -55,7 +55,7 @@ main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; mar
 .availability.loading { color: #5B5860; background: #F0EEF1; }
 .availability.available { color: #236A3B; background: #E5F3E8; }
 .availability.few { color: #785000; background: #FFF0C2; }
-.availability.quick-access { padding: 2px 5px; color: #822045; background: #FFF0A3; font-size: .64rem; line-height: 1.2; }
+.availability.quick-access { padding: 2px 4px; color: #822045; background: #FFF0A3; font-size: .6rem; line-height: 1.2; }
 .availability.soldout { color: #B42318; background: #FCE8E6; }
 .availability.unavailable { color: #5B5860; background: #EAE8EC; }
 .ctl { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
@@ -732,7 +732,7 @@ function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableR
     badge.textContent = isUnavailable
       ? hasSpecificReason ? labels.unavailable + " · " + unavailableReason : labels.unavailable
       : isQuickAccess
-      ? "Schnell zugreifen noch " + count + " verfügbar" + (unavailableReason ? " - " + unavailableReason : "")
+      ? "Schnell zugreifen: noch " + count + " verfügbar" + (unavailableReason ? " · " + unavailableReason : "")
       : count === 0 ? labels.soldout : labels[status] + " (" + count + ")";
     tile.querySelector('button[data-d="-1"]').disabled = isUnavailable || qty[item.id] === 0;
     tile.querySelector('button[data-d="1"]').disabled = isUnavailable || status === "soldout" || qty[item.id] >= Math.min(item.maxQuantity, count);
