@@ -55,6 +55,7 @@ main { position: relative; z-index: 1; isolation: isolate; max-width: 760px; mar
 .availability.loading { color: #5B5860; background: #F0EEF1; }
 .availability.available { color: #236A3B; background: #E5F3E8; }
 .availability.few { color: #785000; background: #FFF0C2; }
+.availability.quick-access { color: #822045; background: #FFF0A3; }
 .availability.soldout { color: #B42318; background: #FCE8E6; }
 .availability.unavailable { color: #5B5860; background: #EAE8EC; }
 .ctl { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
@@ -559,7 +560,6 @@ body { padding-bottom: 32px; }
     <p>Deine Bestellnummer: <strong id="done-order-number"></strong></p>
     <p>Vielen Dank für deine Bestellung! Wir werden dich per Mail kontaktieren, sobald deine Bestellung abholbereit ist! Falls du deine Bestellung am Abholschrank abholst, ist eine Anleitung im Anhang.</p>
     <p class="email-auth-note">Echte E-Mails kommen nur von gerhard-diez@gmx.de oder lukasdiezinger3@gmail.com. Andere Absender sind nicht von uns.</p>
-    <button class="again" id="lookup-open-from-done" type="button">Bestellung abrufen</button>
     <button class="again" type="button" onclick="location.reload()">Neue Bestellung</button>
   </section>
   <div class="hexrow" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -704,7 +704,7 @@ function applyPrices(prices) {
   render();
 }
 
-function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableReasons = {}, productSizes = {}) {
+function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableReasons = {}, productSizes = {}, productStatuses = {}) {
   const labels = { available: "Verfügbar", few: "Wenig verfügbar", soldout: "Ausverkauft", unavailable: "Nicht verfügbar" };
   const threshold = Number.isInteger(lowStockThreshold) && lowStockThreshold >= 0 ? lowStockThreshold : 6;
   items.forEach(item => {
@@ -720,7 +720,9 @@ function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableR
     }
     const count = stock[item.id];
     if (!Number.isInteger(count) || count < 0) throw new Error("Bestandsdaten für " + item.label + " sind ungültig.");
-    const isUnavailable = unavailable[item.id] === true;
+    const productStatus = productStatuses[item.id] || "Normal";
+    const isUnavailable = unavailable[item.id] === true || productStatus === "Nicht verfügbar";
+    const isQuickAccess = productStatus === "Schnell zugreifen" && !isUnavailable;
     if (isUnavailable) {
       qty[item.id] = 0;
       $("q-" + item.id).textContent = "0";
@@ -733,13 +735,14 @@ function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableR
     tile.dataset.soldout = String(status === "soldout");
     tile.dataset.stockStatus = status;
     tile.dataset.stockCount = String(count);
-    badge.className = "availability " + status;
+    badge.className = "availability " + (isQuickAccess ? "quick-access" : status);
     const unavailableReason = String(unavailableReasons[item.id] || "").trim();
     const hasSpecificReason = unavailableReason && unavailableReason !== labels.unavailable;
-    badge.textContent = isUnavailable && hasSpecificReason
-      ? labels.unavailable + " · " + unavailableReason
-      : count === 0 ? labels.soldout
-      : isUnavailable ? labels.unavailable : labels[status] + " (" + count + ")";
+    badge.textContent = isUnavailable
+      ? hasSpecificReason ? labels.unavailable + " · " + unavailableReason : labels.unavailable
+      : isQuickAccess
+      ? "Schnell zugreifen noch " + count + " verfügbar" + (unavailableReason ? " - " + unavailableReason : "")
+      : count === 0 ? labels.soldout : labels[status] + " (" + count + ")";
     tile.querySelector('button[data-d="-1"]').disabled = isUnavailable || qty[item.id] === 0;
     tile.querySelector('button[data-d="1"]').disabled = isUnavailable || status === "soldout" || qty[item.id] >= Math.min(item.maxQuantity, count);
   });
@@ -755,7 +758,7 @@ function loadStock(orderId = "") {
     window[callback] = result => {
       cleanup();
       if (!result || !result.ok) return reject(new Error(result && result.message || "Bestand konnte nicht geladen werden."));
-      try { applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons, result.productSizes); applyPrices(result.prices); resolve(result); }
+      try { applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons, result.productSizes, result.productStatuses); applyPrices(result.prices); resolve(result); }
       catch (error) { reject(error); }
     };
     script.onerror = () => { cleanup(); reject(new Error("Bestand konnte nicht geladen werden.")); };
@@ -872,7 +875,6 @@ function showLookupOrder(order) {
 }
 
 $("lookup-open").addEventListener("click", () => $("order-lookup-dialog").showModal());
-$("lookup-open-from-done").addEventListener("click", () => $("order-lookup-dialog").showModal());
 $("lookup-close").addEventListener("click", () => $("order-lookup-dialog").close());
 $("order-lookup-dialog").addEventListener("close", () => {
   $("order-lookup-form").reset();
@@ -1038,7 +1040,7 @@ $("send").onclick = async () => {
       throw new Error(result.message || "Die Bestellung konnte nicht angenommen werden.");
     }
     pendingOrderId = null;
-    applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons, result.productSizes);
+    applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons, result.productSizes, result.productStatuses);
     $("done-order-number").textContent = result.customerOrderNumber || "Wird geladen";
     try { sessionStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now())); } catch (error) {}
 

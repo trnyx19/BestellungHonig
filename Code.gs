@@ -7,6 +7,7 @@ const ORDER_SENDER_NAME = "Neue Bestellung";
 const ORDER_EMAIL_SUBJECT = "[BESTELLUNG] Neue Bestellung";
 const MAX_ORDER_QUANTITIES = { arb3d: 3, koe3d: 3, wei3d: 3, volk3d: 5, weivol3d: 5 };
 const ORDER_STATUSES = ["Eingegangen", "In Bearbeitung", "Bereit zur Abholung", "Abgeholt"];
+const PRODUCT_AVAILABILITY_STATUSES = ["Normal", "Schnell zugreifen", "Nicht verfügbar"];
 const UNAVAILABLE_REASONS = [
   "Nicht verfügbar",
   "Wartungsarbeiten - Website",
@@ -21,6 +22,15 @@ const UNAVAILABLE_REASONS = [
   "Preis- oder Produktdaten werden aktualisiert",
   "Nicht mehr im Sortiment",
   "Abholung vorübergehend nicht möglich",
+  "Sonstiger Grund"
+];
+const QUICK_ACCESS_REASONS = [
+  "Bald aus dem Sortiment",
+  "Nur noch Restbestand",
+  "Saisonartikel, nur begrenzte Zeit verfügbar",
+  "Modellwechsel",
+  "Produkt wird überarbeitet",
+  "Aktionspreis",
   "Sonstiger Grund"
 ];
 const INITIAL_PRICES = {
@@ -61,11 +71,11 @@ function setup() {
   const isNewInventory = inventory.getLastRow() === 0;
   if (!isNewInventory) migrateInventoryColumns_(inventory);
   if (isNewInventory) {
-    inventory.getRange(1, 1, 1, 7).setValues([["ID", "Sorte", "Größe", "Bestand", "Nicht verfügbar", "Grund nicht verfügbar", "Preis (€)"]]);
+    inventory.getRange(1, 1, 1, 7).setValues([["ID", "Sorte", "Größe", "Bestand", "Verfügbarkeit", "Grund", "Preis (€)"]]);
     inventory.setFrozenRows(1);
   }
-  inventory.getRange(1, 5).setValue("Nicht verfügbar");
-  inventory.getRange(1, 6).setValue("Grund nicht verfügbar");
+  inventory.getRange(1, 5).setValue("Verfügbarkeit");
+  inventory.getRange(1, 6).setValue("Grund");
   inventory.getRange(1, 7).setValue("Preis (€)");
   let inventoryRows = inventory.getLastRow() > 1
     ? inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues()
@@ -151,13 +161,13 @@ function setup() {
     }
   });
   initializeProductPrices_(inventory);
-  inventory.getRange(1, 6).setNote("Wird auf der Bestellseite angezeigt, wenn „Nicht verfügbar“ aktiviert ist.");
+  inventory.getRange(1, 6).setNote("Für „Schnell zugreifen“ und „Nicht verfügbar“ gelten unterschiedliche Grundlisten.");
   inventory.getRange(1, 7).setNote("Wabenhonig: Preis je 100 g; bei allen anderen Artikeln Stückpreis.");
   if (inventory.getLastRow() > 1) {
     inventory.getRange(2, 7, inventory.getLastRow() - 1, 1).setNumberFormat('0.00 "€"');
   }
-  setupUnavailableCheckboxes_(inventory);
-  setupUnavailableReasonDropdowns_(inventory);
+  setupProductAvailabilityDropdowns_(inventory);
+  setupProductReasonDropdowns_(inventory);
   inventory.autoResizeColumns(1, 7);
 
   let orders = spreadsheet.getSheetByName(ORDERS_SHEET);
@@ -211,6 +221,7 @@ function doGet(e) {
       outcomeReady: outcomeReady,
       customerOrderNumber: customerOrderNumber,
       stock: stock,
+      productStatuses: readProductStatuses_(),
       productSizes: readProductSizes_(),
       prices: readPrices_(),
       unavailable: readUnavailable_(),
@@ -406,8 +417,10 @@ function sendNewOrderEmail_(order) {
 function sendCustomerOrderConfirmation_(order) {
   if (!order || !order.email) return;
   const properties = PropertiesService.getScriptProperties();
-  const replyTo = String(properties.getProperty("CUSTOMER_REPLY_TO") || "").trim();
-  const contacts = String(properties.getProperty("CUSTOMER_CONTACTS") || "").split(",")
+  const replyToProperty = properties.getProperty("CUSTOMER_REPLY_TO");
+  const replyTo = String(replyToProperty == null ? "landimkereidiezinger.bestellung@gmx.de" : replyToProperty).trim();
+  const contactsProperty = properties.getProperty("CUSTOMER_CONTACTS");
+  const contacts = String(contactsProperty == null ? "gerhard-diez@gmx.de, lukasdiezinger3@gmail.com" : contactsProperty).split(",")
     .map(function(address) { return address.trim(); })
     .filter(function(address) { return address; });
   const escapeHtml = function(value) {
@@ -476,8 +489,8 @@ function sendCustomerOrderConfirmation_(order) {
     "Landimkerei Diezinger",
     "",
     "Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf.",
-    replyTo ? "Bei Fragen: " + replyTo : "",
-    contacts.length ? "Eine Antwort erhältst du persönlich von: " + contacts.join(" oder ") : ""
+    replyTo ? "Bei Fragen schreib an " + replyTo + "." : "",
+    contacts.length ? "Eine Antwort erhältst du persönlich von " + contacts.join(" oder ") + "." : ""
   ].join("\n");
   MailApp.sendEmail({
     to: order.email,
@@ -600,9 +613,27 @@ function readUnavailable_() {
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
   return rows.reduce(function(unavailable, row) {
     const id = String(row[0]);
-    if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") unavailable[id] = row[4] === true;
+    if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") unavailable[id] = normalizeProductAvailability_(row[4]) === "Nicht verfügbar";
     return unavailable;
   }, {});
+}
+
+function readProductStatuses_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INVENTORY_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
+  return rows.reduce(function(statuses, row) {
+    const id = String(row[0] || "").trim();
+    if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") statuses[id] = normalizeProductAvailability_(row[4]);
+    return statuses;
+  }, {});
+}
+
+function normalizeProductAvailability_(value) {
+  if (value === true || String(value).trim().toLowerCase() === "true") return "Nicht verfügbar";
+  if (value === false || value == null || String(value).trim() === "") return "Normal";
+  const status = String(value).trim();
+  return PRODUCT_AVAILABILITY_STATUSES.indexOf(status) !== -1 ? status : "Normal";
 }
 
 function readUnavailableReasons_() {
@@ -616,25 +647,38 @@ function readUnavailableReasons_() {
   }, {});
 }
 
-function setupUnavailableCheckboxes_(sheet) {
+function setupProductAvailabilityDropdowns_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
   const rows = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
-  const checkboxRule = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  const statusRule = SpreadsheetApp.newDataValidation().requireValueInList(PRODUCT_AVAILABILITY_STATUSES, true).build();
   rows.forEach(function(row, index) {
     const id = String(row[0]).trim();
     if (!id || id === "HNG" || id === "KZN" || id === "K3D") return;
     const cell = sheet.getRange(index + 2, 5);
-    cell.setDataValidation(checkboxRule);
-    if (row[4] === "") cell.setValue(false);
+    const status = normalizeProductAvailability_(row[4]);
+    cell.setDataValidation(statusRule);
+    if (row[4] !== status) cell.setValue(status);
   });
 }
 
-function setupUnavailableReasonDropdowns_(sheet) {
+function onEdit(e) {
+  if (!e || !e.range) return;
+  const sheet = e.range.getSheet();
+  if (sheet.getName() !== INVENTORY_SHEET || e.range.getColumn() !== 5 || e.range.getNumColumns() !== 1) return;
+  const startRow = Math.max(2, e.range.getRow());
+  const endRow = e.range.getLastRow();
+  for (let row = startRow; row <= endRow; row++) {
+    const id = String(sheet.getRange(row, 1).getValue() || "").trim();
+    if (!id || id === "HNG" || id === "KZN" || id === "K3D") continue;
+    updateProductReasonDropdown_(sheet, row, normalizeProductAvailability_(sheet.getRange(row, 5).getValue()));
+  }
+}
+
+function setupProductReasonDropdowns_(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
   const rows = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
-  const reasonRule = SpreadsheetApp.newDataValidation().requireValueInList(UNAVAILABLE_REASONS, true).build();
   const reasonMigrations = {
     "Ausverkauft": "Nicht verfügbar",
     "Bestand aufgebraucht": "Vorübergehend nicht vorrätig",
@@ -647,8 +691,23 @@ function setupUnavailableReasonDropdowns_(sheet) {
     const reasonCell = sheet.getRange(index + 2, 6);
     const oldReason = String(row[5] || "").trim();
     if (Object.prototype.hasOwnProperty.call(reasonMigrations, oldReason)) reasonCell.setValue(reasonMigrations[oldReason]);
-    reasonCell.setDataValidation(reasonRule);
+    updateProductReasonDropdown_(sheet, index + 2, normalizeProductAvailability_(row[4]));
   });
+}
+
+function updateProductReasonDropdown_(sheet, row, status) {
+  const reasonCell = sheet.getRange(row, 6);
+  const reasons = status === "Schnell zugreifen"
+    ? QUICK_ACCESS_REASONS
+    : status === "Nicht verfügbar" ? UNAVAILABLE_REASONS : null;
+  if (!reasons) {
+    reasonCell.clearDataValidations();
+    return;
+  }
+  const currentReason = String(reasonCell.getValue() || "").trim();
+  if (currentReason && reasons.indexOf(currentReason) === -1) reasonCell.clearContent();
+  const reasonRule = SpreadsheetApp.newDataValidation().requireValueInList(reasons, true).build();
+  reasonCell.setDataValidation(reasonRule);
 }
 
 function migrateInventoryColumns_(sheet) {
@@ -657,7 +716,7 @@ function migrateInventoryColumns_(sheet) {
   const headers = sheet.getRange(1, 1, 1, lastColumn).getDisplayValues()[0].map(function(value) { return String(value).trim(); });
   if (headers[5] !== "Preis (€)") return;
 
-  const hasUnavailableReasons = headers[6] === "Grund nicht verfügbar";
+  const hasUnavailableReasons = headers[6] === "Grund nicht verfügbar" || headers[6] === "Grund";
   const lastRow = sheet.getLastRow();
   const existingReasons = hasUnavailableReasons && lastRow > 1
     ? sheet.getRange(2, 7, lastRow - 1, 1).getValues()
@@ -711,7 +770,7 @@ function reserveOrder_(payload) {
       if (!id || id === "HNG" || id === "KZN" || id === "K3D") return;
       const stock = Number(row[3]);
       if (!Number.isInteger(stock) || stock < 0) throw new Error("Im Bestandsblatt steht eine ungültige Stückzahl.");
-      rowById[id] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock, unavailable: unavailableRows[index][0] === true };
+      rowById[id] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock, unavailable: normalizeProductAvailability_(unavailableRows[index][0]) === "Nicht verfügbar" };
     });
 
     const totals = requested.reduce(function(result, item) {
