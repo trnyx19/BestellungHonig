@@ -46,6 +46,7 @@ const INITIAL_CANDLES = [
   ["weiwi", "Kerze Weihnachtswichtel", "4cm x 6cm x 3,5cm", 0]
 ];
 const INITIAL_3D_PRINTS = [
+  ["fehldruck3d", "Bienchen Fehldruck", "Einzeln", 0],
   ["arb3d", "Arbeiter Bienchen", "Stück", 0],
   ["koe3d", "Königin", "Stück", 0],
   ["wei3d", "Weihnachtsbienchen", "Stück", 0],
@@ -335,57 +336,154 @@ function sendNewOrderTelegram_(order) {
 }
 
 function sendNewOrderEmail_(order) {
-  const lines = [
-    "Neue Honigbestellung",
-    "Bestell-ID: " + order.orderId,
-    "Zeitpunkt: " + Utilities.formatDate(order.timestamp, Session.getScriptTimeZone(), "dd.MM.yyyy HH:mm:ss"),
-    "Bestellnummer: " + order.customerOrderNumber,
-    "Name: " + order.name,
-    "E-Mail: " + order.email,
-    "Artikel: " + order.itemSummary,
-    "Abholung: " + (order.pickup || "Keine Angabe"),
-    "Wunschtermin: " + (order.date || "Keine Angabe"),
-    "Wünsche: " + (order.note || "Keine Angabe")
-  ];
+  const escapeHtml = function(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  };
+  const valueOrDash = function(value) {
+    const text = String(value == null ? "" : value).trim();
+    return text ? text : "–";
+  };
+  const timestamp = Utilities.formatDate(order.timestamp, Session.getScriptTimeZone(), "dd.MM.yyyy HH:mm:ss");
+  const items = String(order.itemSummary || "").split(/,\s*(?=\d+x\s)/).filter(function(item) { return item; });
+  const row = function(label, value) {
+    return '<tr><td style="padding:7px 12px 7px 0;color:#888;vertical-align:top;">' + label +
+      '</td><td style="padding:7px 0;color:#222;vertical-align:top;white-space:pre-wrap;">' + value + '</td></tr>';
+  };
+  const emailValue = order.email
+    ? '<a href="mailto:' + escapeHtml(order.email) + '" style="color:#822045;">' + escapeHtml(order.email) + '</a>'
+    : "–";
+  const safeOrderNumber = valueOrDash(order.customerOrderNumber);
+  const safeName = valueOrDash(order.name);
+  const subject = ORDER_EMAIL_SUBJECT + " " + (order.customerOrderNumber || "") + " – " + (order.name || "");
+  const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+    '<body style="margin:0;padding:20px 12px;background:#f5f5f5;font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:15px;">' +
+    '<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;margin:0 auto;background:#fff;border-top:4px solid #822045;border-radius:6px;">' +
+    '<tr><td style="padding:22px 24px;">' +
+    '<div style="font-size:18px;font-weight:bold;color:#822045;">Neue Honigbestellung</div>' +
+    '<div style="font-size:13px;color:#888;margin:2px 0 16px;">' + escapeHtml(timestamp) + '</div>' +
+    '<div style="display:inline-block;padding:6px 12px;background:#FFE337;color:#822045;border-radius:6px;font-family:\'Courier New\',monospace;font-weight:bold;">' + escapeHtml(safeOrderNumber) + '</div>' +
+    '<div style="margin:18px 0 6px;padding-top:14px;border-top:1px solid #eee;font-weight:bold;">' +
+    items.map(function(item) { return escapeHtml(item); }).join("<br>") + '</div>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;font-size:14px;">' +
+    row("Name", escapeHtml(safeName)) +
+    row("E-Mail", emailValue) +
+    row("Abholung", escapeHtml(valueOrDash(order.pickup))) +
+    row("Wunschtermin", escapeHtml(valueOrDash(order.date))) +
+    row("Wünsche", escapeHtml(valueOrDash(order.note))) +
+    '</table><div style="margin-top:18px;font-size:11px;color:#aaa;">ID: ' + escapeHtml(valueOrDash(order.orderId)) +
+    '</div></td></tr></table></body></html>';
+  const text = [
+    "NEUE HONIGBESTELLUNG",
+    safeOrderNumber + " · " + timestamp,
+    "",
+    ...items.map(function(item) { return "- " + item; }),
+    "",
+    "Name:          " + valueOrDash(order.name),
+    "E-Mail:        " + valueOrDash(order.email),
+    "Abholung:      " + valueOrDash(order.pickup),
+    "Wunschtermin:  " + valueOrDash(order.date),
+    "Wünsche:       " + valueOrDash(order.note),
+    "",
+    "ID: " + valueOrDash(order.orderId)
+  ].join("\n");
 
   MailApp.sendEmail({
     to: ORDER_NOTIFICATION_EMAIL,
     name: ORDER_SENDER_NAME,
     replyTo: order.email,
-    subject: ORDER_EMAIL_SUBJECT,
-    body: lines.join("\n")
+    subject: subject,
+    body: text,
+    htmlBody: html
   });
 }
 
 function sendCustomerOrderConfirmation_(order) {
   if (!order || !order.email) return;
-  const lines = [
-    "Servus " + order.name + ",",
+  const properties = PropertiesService.getScriptProperties();
+  const replyTo = String(properties.getProperty("CUSTOMER_REPLY_TO") || "").trim();
+  const contacts = String(properties.getProperty("CUSTOMER_CONTACTS") || "").split(",")
+    .map(function(address) { return address.trim(); })
+    .filter(function(address) { return address; });
+  const escapeHtml = function(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  };
+  const valueOrDash = function(value) {
+    const text = String(value == null ? "" : value).trim();
+    return text ? text : "–";
+  };
+  const items = String(order.itemSummary || "").split(/,\s*(?=\d+x\s)/).filter(function(item) { return item; });
+  const row = function(label, value) {
+    return '<tr><td style="padding:7px 12px 7px 0;color:#888;vertical-align:top;">' + label +
+      '</td><td style="padding:7px 0;color:#222;vertical-align:top;white-space:pre-wrap;">' + value + '</td></tr>';
+  };
+  const mailLink = function(address) {
+    const safeAddress = escapeHtml(address);
+    return '<a href="mailto:' + safeAddress + '" style="color:#822045;">' + safeAddress + '</a>';
+  };
+  const safeName = valueOrDash(order.name);
+  const safeOrderNumber = valueOrDash(order.customerOrderNumber);
+  const date = order.date || "Kein Wunschtermin angegeben";
+  const contactHtml = (replyTo ? 'Bei Fragen schreib an ' + mailLink(replyTo) + '. ' : "") +
+    (contacts.length ? 'Eine Antwort erhältst du persönlich von ' + contacts.map(mailLink).join(" oder ") + "." : "");
+  const statusLookup = "Status abrufen: Auf der Bestellseite ganz nach unten scrollen, „Bestellung abrufen“ anklicken und Bestellnummer sowie E-Mail-Adresse eingeben.";
+  const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+    '<body style="margin:0;padding:20px 12px;background:#f5f5f5;font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:15px;color:#222;line-height:1.5;">' +
+    '<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;margin:0 auto;background:#fff;border-top:4px solid #822045;border-radius:6px;">' +
+    '<tr><td style="padding:22px 24px;">' +
+    '<div style="font-size:18px;font-weight:bold;color:#822045;">Danke für deine Bestellung</div>' +
+    '<p style="margin:10px 0 16px;">Servus ' + escapeHtml(safeName) + ', wir haben deine Bestellung erhalten.</p>' +
+    '<div style="display:inline-block;padding:6px 12px;background:#FFE337;color:#822045;border-radius:6px;font-family:\'Courier New\',monospace;font-weight:bold;">' + escapeHtml(safeOrderNumber) + '</div>' +
+    '<div style="margin:18px 0 6px;padding-top:14px;border-top:1px solid #eee;font-weight:bold;">' +
+    (items.length ? items.map(function(item) { return escapeHtml(item); }).join("<br>") : "–") + '</div>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;font-size:14px;">' +
+    row("Abholung", escapeHtml(valueOrDash(order.pickup))) +
+    row("Wunschtermin", escapeHtml(valueOrDash(date))) +
+    row("Status", escapeHtml(ORDER_STATUSES[0])) +
+    row("Wünsche", escapeHtml(valueOrDash(order.note))) +
+    '</table><p style="margin:18px 0 0;">Wir melden uns, sobald deine Bestellung zur Abholung bereit ist.</p>' +
+    '<p style="margin:14px 0 0;padding:12px 14px;background:#fff8cc;border-radius:6px;font-size:14px;"><b>Status abrufen:</b> Auf der Bestellseite ganz nach unten scrollen, „Bestellung abrufen“ anklicken und Bestellnummer sowie E-Mail-Adresse eingeben.</p>' +
+    '<p style="margin:18px 0 0;">Viele Grüße<br>Landimkerei Diezinger</p>' +
+    '<div style="margin-top:18px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#999;">' +
+    'Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf. ' + contactHtml +
+    '</div></td></tr></table></body></html>';
+  const text = [
+    "Servus " + (order.name || "") + ",",
     "",
     "vielen Dank für deine Bestellung. Wir haben sie erhalten.",
     "",
-    "Bestellnummer: " + order.customerOrderNumber,
-    "Bestellte Artikel: " + order.itemSummary,
-    "Abholung: " + (order.pickup || "Keine Angabe"),
-    "Wunschtermin: " + (order.date || "Kein Wunschtermin angegeben"),
-    "Status: " + ORDER_STATUSES[0]
-  ];
-  if (order.note) lines.push("Wünsche: " + order.note);
-  lines.push(
+    "Bestellnummer: " + safeOrderNumber,
+    ...items.map(function(item) { return "Bestellte Artikel: " + item; }),
+    "Abholung: " + valueOrDash(order.pickup),
+    "Wunschtermin: " + date,
+    "Status: " + ORDER_STATUSES[0],
+    "Wünsche: " + valueOrDash(order.note),
     "",
     "Wir melden uns, sobald deine Bestellung zur Abholung bereit ist.",
-    "Bestellstatus abrufen: Scrolle auf der Bestellseite nach unten zu „Bestellung abrufen“, klicke darauf und gib Bestellnummer sowie E-Mail-Adresse ein. Nach einigen Sekunden wird deine Bestellung angezeigt.",
+    statusLookup,
     "",
     "Viele Grüße",
-    "Lukas von der Landimkerei Diezinger",
+    "Landimkerei Diezinger",
     "",
-    "Hinweis: Diese E-Mail wurde automatisch erstellt. Bitte antworte nicht darauf. Bei Fragen schreibe an landimkereidiezinger.bestellung@gmx.de. Eine Antwort erhältst du persönlich von gerhard-diez@gmx.de oder lukasdiezinger3@gmail.com."
-  );
+    "Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf.",
+    replyTo ? "Bei Fragen: " + replyTo : "",
+    contacts.length ? "Eine Antwort erhältst du persönlich von: " + contacts.join(" oder ") : ""
+  ].join("\n");
   MailApp.sendEmail({
     to: order.email,
     name: "Landimkerei Diezinger",
-    subject: "Bestellbestätigung " + order.customerOrderNumber,
-    body: lines.join("\n")
+    subject: "Deine Bestellung " + (order.customerOrderNumber || "") + " – Landimkerei Diezinger",
+    body: text,
+    htmlBody: html
   });
 }
 

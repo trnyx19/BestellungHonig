@@ -432,6 +432,17 @@ body { padding-bottom: 32px; }
     <path d="M247.5 157.5Q253.0 150.0 257.5 152.0Q262.0 154.0 271.0 164.5Q280.0 175.0 289.5 190.0Q299.0 205.0 301.0 212.5Q303.0 220.0 299.0 226.0Q295.0 232.0 285.0 236.5Q275.0 241.0 262.5 242.0Q250.0 243.0 240.0 240.5Q230.0 238.0 223.5 233.0Q217.0 228.0 216.5 223.0Q216.0 218.0 222.0 204.0Q228.0 190.0 235.0 177.5Q242.0 165.0 247.5 157.5Z" fill="#E50000"/>
     </g>
   </symbol>
+  <symbol id="bee-fehldruck" viewBox="120 70 480 360">
+    <defs>
+      <clipPath id="fd-top"><rect x="0" y="0" width="700" height="325"/></clipPath>
+      <clipPath id="fd-bot"><rect x="0" y="325" width="700" height="200"/></clipPath>
+    </defs>
+    <use href="#bee-worker" x="120" y="70" width="480" height="360" clip-path="url(#fd-bot)"/>
+    <g transform="translate(11 0)"><use href="#bee-worker" x="120" y="70" width="480" height="360" clip-path="url(#fd-top)"/></g>
+    <path d="M372 396C410 332 505 345 478 396C455 430 396 414 432 374M350 402C392 430 468 428 522 392C552 370 545 335 506 342M408 404C452 366 522 382 552 414M388 408C432 382 470 418 524 382M342 392C356 362 392 366 394 394" fill="none" stroke="#C99200" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M372 396C410 332 505 345 478 396C455 430 396 414 432 374M350 402C392 430 468 428 522 392C552 370 545 335 506 342M408 404C452 366 522 382 552 414M342 392C356 362 392 366 394 394" fill="none" stroke="#FFC907" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M388 408C432 382 470 418 524 382" fill="none" stroke="#222" stroke-width="3.8" stroke-linecap="round"/>
+  </symbol>
   <symbol id="candle-beehive" viewBox="0 0 100 90">
     <ellipse cx="50" cy="86" rx="32" ry="3" fill="#000" opacity=".16"/>
     <rect x="48.7" y="1" width="2.6" height="14" rx="1.1" fill="#FFF" stroke="#CFC8B2" stroke-width=".6"/>
@@ -573,6 +584,7 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", sizes: [["weiwi", "4cm x 6cm x 3,5cm"]] }
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
+    { name: "Bienchen Fehldruck", icon: "bee-fehldruck", iconViewBox: "120 70 480 360", note: "Jedes Fehldruck-Bienchen weist mindestens einen Mangel auf, zum Beispiel fehlendes Druckmaterial oder abgebrochene Teile.", honey: "#F6D782", sizes: [["fehldruck3d", "Einzeln"]] },
     { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "100 80 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück"]] },
     { name: "Königin", icon: "bee-queen", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück"]] },
     { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", iconViewBox: "130 70 496 400", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück"]] },
@@ -623,7 +635,8 @@ PRODUCTS.forEach(p => {
     const sourceValues = sourceViewBox.split(/\s+/).map(Number);
     const sourceWidth = sourceValues[2];
     const sourceHeight = sourceValues[3];
-    return '<svg class="' + className + '"' + (width ? ' width="' + width + '"' : '') + ' viewBox="0 0 ' + sourceWidth + ' ' + sourceHeight + '"><use href="#' + id + '" width="' + sourceWidth + '" height="' + sourceHeight + '"/></svg>';
+    const href = "#" + id;
+    return '<svg class="' + className + '"' + (width ? ' width="' + width + '"' : '') + ' viewBox="0 0 ' + sourceWidth + ' ' + sourceHeight + '"><use href="' + href + '" width="' + sourceWidth + '" height="' + sourceHeight + '"/></svg>';
   };
   const headerIcon = p.icons
     ? '<span class="bee-pair" aria-hidden="true">' + p.icons.map(function(item) { return iconMarkup(item.id, item.viewBox, "jar", null); }).join("") + '</span>'
