@@ -150,6 +150,7 @@ input:focus, textarea:focus { background: var(--card) !important; }
 body { padding-bottom: 32px; }
 .bar :focus-visible { outline-color: var(--y); }
 .bar-in { max-width: 540px; margin: 0 auto; display: grid; gap: 8px; }
+.bar-lookup { display: flex; justify-content: flex-end; margin-top: 4px; }
 #status { margin: 0; font-weight: 600; }
 #status:empty { display: none; }
 .bar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -522,6 +523,7 @@ body { padding-bottom: 32px; }
         <div class="sum-block"><div class="sum" id="sum" aria-live="polite"></div></div>
         <button class="send" id="send" type="button">Bestellung absenden</button>
       </div>
+      <div class="bar-lookup"><button class="lookup-close" id="lookup-open" type="button">Bestellung abrufen</button></div>
     </div>
   </div>
   <dialog class="lookup-dialog" id="order-lookup-dialog" aria-labelledby="lookup-title">
@@ -593,7 +595,7 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", sizes: [["weiwi", "4cm x 6cm x 3,5cm"]] }
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
-    { name: "Bienchen Fehldruck", icon: "bee-fehldruck", iconViewBox: "120 70 480 360", note: "Jedes Fehldruck-Bienchen weist mindestens einen Mangel auf, zum Beispiel fehlendes Druckmaterial oder abgebrochene Teile.", honey: "#F6D782", sizes: [["fehldruck3d", "Einzeln"]] },
+    { name: "Bienchen Fehldruck", icon: "bee-fehldruck", iconViewBox: "120 70 480 360", honey: "#F6D782", sizes: [["fehldruck3d", "Einzeln"]] },
     { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "100 80 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück"]] },
     { name: "Königin", icon: "bee-queen", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück"]] },
     { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", iconViewBox: "130 70 496 400", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück"]] },
@@ -632,6 +634,9 @@ PRODUCT_GROUPS.forEach(group => {
   categoryPanels.appendChild(content);
   if (group.id === "candles") {
     content.innerHTML = '<aside class="category-hints" role="note"><strong class="category-hints-title">Wichtige Hinweise zu den Kerzen</strong><p class="category-availability">Kerzen sind aktuell noch nicht verfügbar. Ab wann sie erhältlich sind und in welcher Stückzahl, steht noch nicht fest.</p><ol><li>Maße sind ungefähre Angaben; Abweichungen bis 0,5 cm sind möglich.</li><li>Alle Kerzen bestehen aus echtem Bienenwachs.</li></ol></aside>';
+  }
+  if (group.id === "3d-prints") {
+    content.innerHTML = '<aside class="category-hints" role="note"><strong class="category-hints-title">Wichtiger Hinweis zu 3D-Drucken</strong><p class="category-availability">Fehldruck-Bienchen können einen oder mehrere Mängel haben, zum Beispiel fehlendes Material oder abgebrochene Teile.</p></aside>';
   }
   groupElements[group.id] = { toggle, content };
 });
@@ -856,6 +861,7 @@ function showLookupOrder(order) {
   $("lookup-details").hidden = false;
 }
 
+$("lookup-open").addEventListener("click", () => $("order-lookup-dialog").showModal());
 $("lookup-open-from-done").addEventListener("click", () => $("order-lookup-dialog").showModal());
 $("lookup-close").addEventListener("click", () => $("order-lookup-dialog").close());
 $("order-lookup-dialog").addEventListener("close", () => {
