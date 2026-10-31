@@ -46,12 +46,12 @@ const INITIAL_CANDLES = [
   ["weiwi", "Kerze Weihnachtswichtel", "4cm x 6cm x 3,5cm", 0]
 ];
 const INITIAL_3D_PRINTS = [
-  ["fehldruck3d", "Bienchen Fehldruck", "Einzeln", 0],
+  ["fehldruck3d", "Bienchen Fehldruck", "Stück", 0],
   ["arb3d", "Arbeiter Bienchen", "Stück", 0],
   ["koe3d", "Königin", "Stück", 0],
   ["wei3d", "Weihnachtsbienchen", "Stück", 0],
-  ["volk3d", "Bienchenvolk", "Stück", 0],
-  ["weivol3d", "Weihnachtsbienchenvolk", "Stück", 0]
+  ["volk3d", "Bienchenvolk", "Ein Volk", 0],
+  ["weivol3d", "Weihnachtsbienchenvolk", "Ein Volk", 0]
 ];
 
 function setup() {
@@ -211,6 +211,7 @@ function doGet(e) {
       outcomeReady: outcomeReady,
       customerOrderNumber: customerOrderNumber,
       stock: stock,
+      productSizes: readProductSizes_(),
       prices: readPrices_(),
       unavailable: readUnavailable_(),
       unavailableReasons: readUnavailableReasons_(),
@@ -547,6 +548,18 @@ function readInventory_() {
     const id = String(row[0]);
     if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") stock[id] = Number(row[3]);
     return stock;
+  }, {});
+}
+
+function readProductSizes_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INVENTORY_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
+  return rows.reduce(function(sizes, row) {
+    const id = String(row[0] || "").trim();
+    const size = String(row[2] || "").trim();
+    if (id && id !== "HNG" && id !== "KZN" && id !== "K3D" && size) sizes[id] = size;
+    return sizes;
   }, {});
 }
 

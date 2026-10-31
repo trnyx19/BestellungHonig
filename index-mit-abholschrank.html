@@ -150,7 +150,7 @@ input:focus, textarea:focus { background: var(--card) !important; }
 body { padding-bottom: 32px; }
 .bar :focus-visible { outline-color: var(--y); }
 .bar-in { max-width: 540px; margin: 0 auto; display: grid; gap: 8px; }
-.bar-lookup { display: flex; justify-content: flex-end; margin-top: 4px; }
+.lookup-shortcut { position: relative; z-index: 1; display: flex; justify-content: center; margin: -14px 0 6px; }
 #status { margin: 0; font-weight: 600; }
 #status:empty { display: none; }
 .bar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -523,9 +523,9 @@ body { padding-bottom: 32px; }
         <div class="sum-block"><div class="sum" id="sum" aria-live="polite"></div></div>
         <button class="send" id="send" type="button">Bestellung absenden</button>
       </div>
-      <div class="bar-lookup"><button class="lookup-close" id="lookup-open" type="button">Bestellung abrufen</button></div>
     </div>
   </div>
+  <div class="lookup-shortcut"><button class="lookup-close" id="lookup-open" type="button">Bestellung abrufen</button></div>
   <dialog class="lookup-dialog" id="order-lookup-dialog" aria-labelledby="lookup-title">
     <h2 id="lookup-title">Bestellung abrufen</h2>
     <p>Gib deine Bestellnummer und die bei der Bestellung verwendete E-Mail-Adresse ein.</p>
@@ -595,7 +595,7 @@ const PRODUCT_GROUPS = [
     { name: "Kerze Weihnachtswichtel", honey: "#F7EDC4", icon: "candle-snowman", sizes: [["weiwi", "4cm x 6cm x 3,5cm"]] }
   ] },
   { id: "3d-prints", label: "Kleinkram (3D-Druck)", products: [
-    { name: "Bienchen Fehldruck", icon: "bee-fehldruck", iconViewBox: "120 70 480 360", honey: "#F6D782", sizes: [["fehldruck3d", "Einzeln"]] },
+    { name: "Bienchen Fehldruck", icon: "bee-fehldruck", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["fehldruck3d", "Stück"]] },
     { name: "Arbeiter Bienchen", icon: "bee-worker", iconViewBox: "100 80 400 350", note: "Einzelnes Bienchen", honey: "#F6D782", sizes: [["arb3d", "Stück"]] },
     { name: "Königin", icon: "bee-queen", iconViewBox: "120 70 480 360", note: "Einzelnes Bienchen", honey: "#E7B75B", sizes: [["koe3d", "Stück"]] },
     { name: "Weihnachtsbienchen", displayName: "Weihnachts&shy;bienchen", icon: "bee-christmas", iconViewBox: "130 70 496 400", note: "Einzelnes Bienchen", honey: "#D9A84E", sizes: [["wei3d", "Stück"]] },
@@ -660,7 +660,7 @@ PRODUCTS.forEach(p => {
   g.innerHTML = '<div class="chead">' + headerIcon + '<div class="ct"><h3>' + (p.displayName || p.name) + "</h3>" + (p.note ? '<span class="chip">' + p.note + "</span>" : "") + '</div></div><div class="sizes"></div>';
   p.sizes.forEach(([id, size]) => {
     const label = p.name + (p.note ? " (" + p.note + ", " + size + ")" : " (" + size + ")");
-    items.push({ id, label, price: null, rate: null, pricePer100g: Boolean(p.pricePer100g), priceNote: p.priceNote, maxQuantity: MAX_ORDER_QUANTITIES[id] || 20 });
+    items.push({ id, name: p.name, note: p.note, size, label, price: null, rate: null, pricePer100g: Boolean(p.pricePer100g), priceNote: p.priceNote, maxQuantity: MAX_ORDER_QUANTITIES[id] || 20 });
     qty[id] = 0;
     const w = parseInt(size) > 300 ? 58 : 44;
     const t = document.createElement("div");
@@ -704,10 +704,20 @@ function applyPrices(prices) {
   render();
 }
 
-function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableReasons = {}) {
+function applyStock(stock, lowStockThreshold = 6, unavailable = {}, unavailableReasons = {}, productSizes = {}) {
   const labels = { available: "Verfügbar", few: "Wenig verfügbar", soldout: "Ausverkauft", unavailable: "Nicht verfügbar" };
   const threshold = Number.isInteger(lowStockThreshold) && lowStockThreshold >= 0 ? lowStockThreshold : 6;
   items.forEach(item => {
+    const sheetSize = String(productSizes[item.id] || "").trim();
+    if (sheetSize) {
+      const label = item.name + (item.note ? " (" + item.note + ", " + sheetSize + ")" : " (" + sheetSize + ")");
+      item.size = sheetSize;
+      item.label = label;
+      const tile = $("tile-" + item.id);
+      tile.querySelector(".size").textContent = sheetSize;
+      tile.querySelector('button[data-d="-1"]').setAttribute("aria-label", "Eins weniger: " + label);
+      tile.querySelector('button[data-d="1"]').setAttribute("aria-label", "Eins mehr: " + label);
+    }
     const count = stock[item.id];
     if (!Number.isInteger(count) || count < 0) throw new Error("Bestandsdaten für " + item.label + " sind ungültig.");
     const isUnavailable = unavailable[item.id] === true;
@@ -745,7 +755,7 @@ function loadStock(orderId = "") {
     window[callback] = result => {
       cleanup();
       if (!result || !result.ok) return reject(new Error(result && result.message || "Bestand konnte nicht geladen werden."));
-      try { applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons); applyPrices(result.prices); resolve(result); }
+      try { applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons, result.productSizes); applyPrices(result.prices); resolve(result); }
       catch (error) { reject(error); }
     };
     script.onerror = () => { cleanup(); reject(new Error("Bestand konnte nicht geladen werden.")); };
@@ -1028,7 +1038,7 @@ $("send").onclick = async () => {
       throw new Error(result.message || "Die Bestellung konnte nicht angenommen werden.");
     }
     pendingOrderId = null;
-    applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons);
+    applyStock(result.stock, result.lowStockThreshold, result.unavailable, result.unavailableReasons, result.productSizes);
     $("done-order-number").textContent = result.customerOrderNumber || "Wird geladen";
     try { sessionStorage.setItem(SUBMIT_COOLDOWN_KEY, String(Date.now())); } catch (error) {}
 
