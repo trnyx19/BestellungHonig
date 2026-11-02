@@ -179,6 +179,7 @@ function setup() {
     orders.setFrozenRows(1);
   }
   setupOrderTracking_(orders);
+  setupOrderStatusEmailTrigger_(spreadsheet);
   orders.autoResizeColumns(1, 10);
 }
 
@@ -501,8 +502,134 @@ function sendCustomerOrderConfirmation_(order) {
   });
 }
 
+function sendCustomerOrderStatusEmail_(order, status) {
+  if (!order || !order.email) return;
+  const properties = PropertiesService.getScriptProperties();
+  const replyToProperty = properties.getProperty("CUSTOMER_REPLY_TO");
+  const replyTo = String(replyToProperty == null ? "landimkereidiezinger.bestellung@gmx.de" : replyToProperty).trim();
+  const contactsProperty = properties.getProperty("CUSTOMER_CONTACTS");
+  const contacts = String(contactsProperty == null ? "gerhard-diez@gmx.de, lukasdiezinger3@gmail.com" : contactsProperty).split(",")
+    .map(function(address) { return address.trim(); })
+    .filter(function(address) { return address; });
+  const messages = {
+    "In Bearbeitung": {
+      subject: "Wir machen deine Honigbestellung fertig",
+      title: "Wir machen deine Bestellung fertig",
+      html: "Danke dir! Wir machen deine Bestellung gerade fertig. Sobald alles für dich bereitsteht, melden wir uns nochmal.",
+      text: "Danke dir! Wir machen deine Bestellung gerade fertig. Sobald alles für dich bereitsteht, melden wir uns nochmal."
+    },
+    "Bereit zur Abholung": {
+      subject: "Deine Bestellung wartet auf dich",
+      title: "Deine Bestellung ist fertig",
+      html: "Deine Bestellung ist fertig und wartet auf dich. Du kannst sie wie vereinbart abholen.",
+      text: "Deine Bestellung ist fertig und wartet auf dich. Du kannst sie wie vereinbart abholen."
+    },
+    "Abgeholt": {
+      subject: "Viel Freude mit deiner Bestellung!",
+      title: "Viel Freude mit deiner Bestellung!",
+      html: "Schön, dass du deine Bestellung abgeholt hast. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten!",
+      text: "Schön, dass du deine Bestellung abgeholt hast. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten!"
+    }
+  };
+  const message = messages[status];
+  if (!message) return;
+  const escapeHtml = function(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  };
+  const valueOrDash = function(value) {
+    const text = String(value == null ? "" : value).trim();
+    return text ? text : "–";
+  };
+  const safeOrderNumber = valueOrDash(order.customerOrderNumber);
+  const safeName = valueOrDash(order.name);
+  const items = String(order.itemSummary || "").split(/,\s*(?=\d+x\s)/).filter(function(item) { return item; });
+  const row = function(label, value) {
+    return '<tr><td style="padding:7px 12px 7px 0;color:#888;vertical-align:top;">' + label +
+      '</td><td style="padding:7px 0;color:#222;vertical-align:top;white-space:pre-wrap;">' + value + '</td></tr>';
+  };
+  const mailLink = function(address) {
+    const safeAddress = escapeHtml(address);
+    return '<a href="mailto:' + safeAddress + '" style="color:#822045;">' + safeAddress + '</a>';
+  };
+  const contactHtml = (replyTo ? 'Bei Fragen schreib an ' + mailLink(replyTo) + '. ' : "") +
+    (contacts.length ? 'Eine Antwort erhältst du persönlich von ' + contacts.map(mailLink).join(" oder ") + "." : "");
+  const contactText = [
+    replyTo ? "Bei Fragen schreib an " + replyTo + "." : "",
+    contacts.length ? "Eine Antwort erhältst du persönlich von " + contacts.join(" oder ") + "." : ""
+  ].filter(Boolean).join(" ");
+  const itemList = items.length ? items.map(function(item) { return escapeHtml(item); }).join("<br>") : "–";
+  const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+    '<body style="margin:0;padding:20px 12px;background:#f5f5f5;font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:15px;color:#222;line-height:1.5;">' +
+    '<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;margin:0 auto;background:#fff;border-top:4px solid #822045;border-radius:6px;">' +
+    '<tr><td style="padding:22px 24px;">' +
+    '<div style="font-size:18px;font-weight:bold;color:#822045;">' + escapeHtml(message.title) + '</div>' +
+    '<p style="margin:10px 0 16px;">Hallo ' + escapeHtml(safeName) + ',<br>' + message.html + '</p>' +
+    '<div style="display:inline-block;padding:6px 12px;background:#FFE337;color:#822045;border-radius:6px;font-family:\'Courier New\',monospace;font-weight:bold;">' + escapeHtml(safeOrderNumber) + '</div>' +
+    '<div style="margin:18px 0 6px;padding-top:14px;border-top:1px solid #eee;font-weight:bold;">' + itemList + '</div>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;font-size:14px;">' +
+    row("Abholung", escapeHtml(valueOrDash(order.pickup))) +
+    row("Wunschtermin", escapeHtml(valueOrDash(order.date))) +
+    row("Status", escapeHtml(status)) +
+    '</table><p style="margin:18px 0 0;">Viele Grüße<br>Landimkerei Diezinger</p>' +
+    '<div style="margin-top:18px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#999;">' +
+    'Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf. ' + contactHtml +
+    '</div></td></tr></table></body></html>';
+  const text = [
+    "Hallo " + (order.name || "") + ",",
+    "",
+    message.text,
+    "",
+    "Bestellnummer: " + safeOrderNumber,
+    ...items.map(function(item) { return "Bestellte Artikel: " + item; }),
+    "Abholung: " + valueOrDash(order.pickup),
+    "Wunschtermin: " + valueOrDash(order.date),
+    "Status: " + status,
+    "",
+    "Viele Grüße",
+    "Landimkerei Diezinger",
+    "",
+    "Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf.",
+    contactText
+  ].join("\n");
+  MailApp.sendEmail({
+    to: order.email,
+    name: "Landimkerei Diezinger",
+    subject: message.subject + " " + (order.customerOrderNumber || "") + " – Landimkerei Diezinger",
+    body: text,
+    htmlBody: html
+  });
+}
+
 function authorizeOrderEmail() {
   return MailApp.getRemainingDailyQuota();
+}
+
+function EmailStatusSend() {
+  const testEmail = String(PropertiesService.getScriptProperties().getProperty("EMAIL_STATUSSEND_TEST") || "").trim();
+  if (!testEmail) {
+    throw new Error("Lege unter Projekteinstellungen > Script-Eigenschaften die Adresse EMAIL_STATUSSEND_TEST fest.");
+  }
+
+  const testOrder = {
+    name: "E-Mail-Test",
+    email: testEmail,
+    itemSummary: "1x Cremiger Honig Frühling (250 g)",
+    customerOrderNumber: "TEST-STATUS",
+    pickup: "Persönlich abholen (Mo-Fr 17-19 Uhr, Sa 10-19 Uhr)",
+    date: "Kein Wunschtermin angegeben",
+    note: ""
+  };
+  sendCustomerOrderConfirmation_(testOrder);
+  ORDER_STATUSES.slice(1).forEach(function(status) {
+    sendCustomerOrderStatusEmail_(testOrder, status);
+  });
+  console.log("Alle vier Statusmails wurden ausschließlich an " + testEmail + " gesendet.");
+  return testEmail;
 }
 
 function testOrderNotifications() {
@@ -673,6 +800,27 @@ function onEdit(e) {
     if (!id || id === "HNG" || id === "KZN" || id === "K3D") continue;
     updateProductReasonDropdown_(sheet, row, normalizeProductAvailability_(sheet.getRange(row, 5).getValue()));
   }
+}
+
+function onOrderStatusEdit(e) {
+  if (!e || !e.range) return;
+  const range = e.range;
+  const sheet = range.getSheet();
+  if (sheet.getName() !== ORDERS_SHEET || range.getColumn() !== 10 || range.getNumColumns() !== 1 || range.getNumRows() !== 1) return;
+  const status = String(e.value == null ? range.getValue() : e.value).trim();
+  const previousStatus = String(e.oldValue || "").trim();
+  if (!status || status === previousStatus || status === ORDER_STATUSES[0] || ORDER_STATUSES.indexOf(status) === -1) return;
+
+  const row = sheet.getRange(range.getRow(), 1, 1, 10).getValues()[0];
+  if (String(row[9] || "").trim() !== status) return;
+  sendCustomerOrderStatusEmail_({
+    name: String(row[2] || ""),
+    email: String(row[3] || ""),
+    itemSummary: String(row[4] || ""),
+    pickup: String(row[5] || ""),
+    date: String(row[6] || ""),
+    customerOrderNumber: String(row[8] || "")
+  }, status);
 }
 
 function setupProductReasonDropdowns_(sheet) {
@@ -882,6 +1030,15 @@ function setupOrderTracking_(orders) {
   });
   orders.getRange(2, 9, trackingValues.length, 2).setValues(trackingValues);
   orders.getRange(2, 10, Math.max(1, orders.getMaxRows() - 1), 1).setDataValidation(statusRule);
+}
+
+function setupOrderStatusEmailTrigger_(spreadsheet) {
+  const triggerExists = ScriptApp.getProjectTriggers().some(function(trigger) {
+    return trigger.getHandlerFunction() === "onOrderStatusEdit" && trigger.getEventType() === ScriptApp.EventType.ON_EDIT;
+  });
+  if (!triggerExists) {
+    ScriptApp.newTrigger("onOrderStatusEdit").forSpreadsheet(spreadsheet).onEdit().create();
+  }
 }
 
 function generateCustomerOrderNumber_(existingNumbers) {
