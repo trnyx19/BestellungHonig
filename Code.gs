@@ -1206,6 +1206,61 @@ function trashOrderSlipPdf_(fileId) {
   }
 }
 
+function repairOrderSlipLinks() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const orders = spreadsheet.getSheetByName(ORDERS_SHEET);
+  if (!orders) throw new Error("Das Bestellblatt ist nicht eingerichtet. Führe zuerst setup() aus.");
+  setupOrderTracking_(orders);
+  setupOrderStatusEmailTrigger_(spreadsheet);
+  getOrderSlipFolder_();
+
+  const authorizationDocument = DocumentApp.create("Berechtigungsprüfung Bestellzettel");
+  const authorizationDocumentId = authorizationDocument.getId();
+  authorizationDocument.saveAndClose();
+  DriveApp.getFileById(authorizationDocumentId).setTrashed(true);
+
+  if (orders.getLastRow() < 2) return 0;
+  const rows = orders.getRange(2, 1, orders.getLastRow() - 1, 14).getValues();
+  let repairedCount = 0;
+  rows.forEach(function(row, index) {
+    if (String(row[9] || "").trim() !== "Bereit zur Abholung") return;
+    const linkText = String(row[12] || "").trim();
+    const fileId = String(row[13] || "").trim();
+    if (linkText && fileId) return;
+
+    let pdfFile = null;
+    if (fileId) {
+      try {
+        pdfFile = DriveApp.getFileById(fileId);
+        if (pdfFile.isTrashed()) pdfFile = null;
+      } catch (error) {
+        pdfFile = null;
+      }
+    }
+    if (!pdfFile) {
+      pdfFile = createOrderSlipPdf_({
+        timestamp: row[1],
+        name: row[2],
+        itemSummary: row[4],
+        pickup: row[5],
+        date: row[6],
+        note: row[7],
+        customerOrderNumber: row[8],
+        totalPrice: row[10],
+        priceNote: row[11]
+      });
+    }
+    const sheetRow = index + 2;
+    orders.getRange(sheetRow, 13).setRichTextValue(
+      SpreadsheetApp.newRichTextValue().setText("PDF öffnen / drucken").setLinkUrl(pdfFile.getUrl()).build()
+    );
+    orders.getRange(sheetRow, 14).setValue(pdfFile.getId());
+    repairedCount++;
+  });
+  console.log(repairedCount + " PDF-Link(s) ergänzt.");
+  return repairedCount;
+}
+
 function setupOrderStatusEmailTrigger_(spreadsheet) {
   const triggerExists = ScriptApp.getProjectTriggers().some(function(trigger) {
     return trigger.getHandlerFunction() === "onOrderStatusEdit" && trigger.getEventType() === ScriptApp.EventType.ON_EDIT;
