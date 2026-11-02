@@ -173,14 +173,15 @@ function setup() {
   let orders = spreadsheet.getSheetByName(ORDERS_SHEET);
   if (!orders) orders = spreadsheet.insertSheet(ORDERS_SHEET);
   if (orders.getLastRow() === 0) {
-    orders.getRange(1, 1, 1, 12).setValues([[
-      "Bestell-ID", "Zeitpunkt", "Name", "E-Mail", "Artikel", "Abholung", "Wunschtermin", "Wünsche", "Bestellnummer", "Status", "Betrag (€)", "Preishinweis"
+    orders.getRange(1, 1, 1, 14).setValues([[
+      "Bestell-ID", "Zeitpunkt", "Name", "E-Mail", "Artikel", "Abholung", "Wunschtermin", "Wünsche", "Bestellnummer", "Status", "Betrag (€)", "Preishinweis", "Druck-PDF", "PDF-Datei-ID"
     ]]);
     orders.setFrozenRows(1);
   }
   setupOrderTracking_(orders);
+  setupOrderArchive_(spreadsheet);
   setupOrderStatusEmailTrigger_(spreadsheet);
-  orders.autoResizeColumns(1, 12);
+  orders.autoResizeColumns(1, 13);
 }
 
 function doGet(e) {
@@ -832,9 +833,11 @@ function onOrderStatusEdit(e) {
   const previousStatus = String(e.oldValue || "").trim();
   if (!status || status === previousStatus || status === ORDER_STATUSES[0] || ORDER_STATUSES.indexOf(status) === -1) return;
 
-  const row = sheet.getRange(range.getRow(), 1, 1, 12).getValues()[0];
+  const row = sheet.getRange(range.getRow(), 1, 1, 14).getValues()[0];
   if (String(row[9] || "").trim() !== status) return;
   const order = {
+    orderId: String(row[0] || ""),
+    timestamp: row[1],
     name: String(row[2] || ""),
     email: String(row[3] || ""),
     itemSummary: String(row[4] || ""),
@@ -842,14 +845,30 @@ function onOrderStatusEdit(e) {
     date: String(row[6] || ""),
     customerOrderNumber: String(row[8] || ""),
     totalPrice: row[10],
-    priceNote: String(row[11] || "")
+    priceNote: String(row[11] || ""),
+    pdfFileId: String(row[13] || "")
   };
-  sendCustomerOrderStatusEmail_(order, status);
-  if (status === "Abgeholt") {
-    sheet.getRange(range.getRow(), 1).clearContent();
-    sheet.getRange(range.getRow(), 3, 1, 2).clearContent();
-    sheet.getRange(range.getRow(), 6, 1, 4).clearContent();
+
+  if (status === "Bereit zur Abholung") {
+    const pdfFile = order.pdfFileId
+      ? DriveApp.getFileById(order.pdfFileId)
+      : createOrderSlipPdf_(order);
+    sheet.getRange(range.getRow(), 13).setRichTextValue(
+      SpreadsheetApp.newRichTextValue().setText("PDF öffnen / drucken").setLinkUrl(pdfFile.getUrl()).build()
+    );
+    sheet.getRange(range.getRow(), 14).setValue(pdfFile.getId());
+  } else if (status === "Abgeholt") {
+    archiveCompletedOrder_(order);
+    trashOrderSlipPdf_(order.pdfFileId);
+    sheet.deleteRow(range.getRow());
+    sendCustomerOrderStatusEmail_(order, status);
+    return;
+  } else if (order.pdfFileId) {
+    trashOrderSlipPdf_(order.pdfFileId);
+    sheet.getRange(range.getRow(), 13, 1, 2).clearContent();
   }
+
+  sendCustomerOrderStatusEmail_(order, status);
 }
 
 function setupProductReasonDropdowns_(sheet) {
@@ -1062,9 +1081,10 @@ function reserveOrder_(payload) {
 }
 
 function setupOrderTracking_(orders) {
-  if (orders.getMaxColumns() < 12) orders.insertColumnsAfter(orders.getMaxColumns(), 12 - orders.getMaxColumns());
-  orders.getRange(1, 9, 1, 4).setValues([["Bestellnummer", "Status", "Betrag (€)", "Preishinweis"]]);
+  if (orders.getMaxColumns() < 14) orders.insertColumnsAfter(orders.getMaxColumns(), 14 - orders.getMaxColumns());
+  orders.getRange(1, 9, 1, 6).setValues([["Bestellnummer", "Status", "Betrag (€)", "Preishinweis", "Druck-PDF", "PDF-Datei-ID"]]);
   orders.getRange(2, 11, Math.max(1, orders.getMaxRows() - 1), 1).setNumberFormat('0.00 "€"');
+  orders.hideColumns(14);
   const lastRow = orders.getLastRow();
   const statusRule = SpreadsheetApp.newDataValidation().requireValueInList(ORDER_STATUSES, true).build();
   if (lastRow < 2) return;
@@ -1082,6 +1102,108 @@ function setupOrderTracking_(orders) {
   });
   orders.getRange(2, 9, trackingValues.length, 2).setValues(trackingValues);
   orders.getRange(2, 10, Math.max(1, orders.getMaxRows() - 1), 1).setDataValidation(statusRule);
+}
+
+function setupOrderArchive_(spreadsheet) {
+  let archive = spreadsheet.getSheetByName("Bestellung-Archiv");
+  if (!archive) archive = spreadsheet.insertSheet("Bestellung-Archiv");
+  archive.getRange(1, 1, 1, 8).setValues([[
+    "Bestellnummer", "Produkte", "Abholart", "Wünsche", "Bestellt am", "Abgeholt am", "Betrag (€)", "Preishinweis"
+  ]]);
+  archive.setFrozenRows(1);
+  archive.getRange(2, 5, Math.max(1, archive.getMaxRows() - 1), 2).setNumberFormat("dd.MM.yyyy HH:mm");
+  if (archive.getMaxColumns() >= 7) archive.getRange(2, 7, Math.max(1, archive.getMaxRows() - 1), 1).setNumberFormat('0.00 "€"');
+  archive.autoResizeColumns(1, 8);
+}
+
+function archiveCompletedOrder_(order) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const archive = spreadsheet.getSheetByName("Bestellung-Archiv") || spreadsheet.insertSheet("Bestellung-Archiv");
+  if (archive.getLastRow() === 0) setupOrderArchive_(spreadsheet);
+  if (!order.customerOrderNumber) throw new Error("Die Bestellung hat keine Bestellnummer und konnte nicht archiviert werden.");
+  if (archive.getLastRow() > 1) {
+    const archivedNumbers = archive.getRange(2, 1, archive.getLastRow() - 1, 1).getValues();
+    if (archivedNumbers.some(function(row) { return String(row[0]) === order.customerOrderNumber; })) return;
+  }
+  archive.appendRow([
+    order.customerOrderNumber,
+    order.itemSummary,
+    order.pickup,
+    order.note,
+    order.timestamp,
+    new Date(),
+    order.totalPrice,
+    order.priceNote
+  ]);
+}
+
+function getOrderSlipFolder_() {
+  const properties = PropertiesService.getScriptProperties();
+  const folderId = properties.getProperty("ORDER_SLIP_FOLDER_ID");
+  if (folderId) {
+    try {
+      return DriveApp.getFolderById(folderId);
+    } catch (error) {
+      properties.deleteProperty("ORDER_SLIP_FOLDER_ID");
+    }
+  }
+  const folder = DriveApp.createFolder("Bestellzettel (vorübergehend)");
+  properties.setProperty("ORDER_SLIP_FOLDER_ID", folder.getId());
+  return folder;
+}
+
+function createOrderSlipPdf_(order) {
+  const safeNumber = String(order.customerOrderNumber || "Bestellung").replace(/[^A-Za-z0-9_-]/g, "_");
+  const document = DocumentApp.create("Bestellübersicht " + safeNumber);
+  const documentId = document.getId();
+  try {
+    const body = document.getBody();
+    body.clear();
+    body.setMarginTop(42).setMarginBottom(42).setMarginLeft(48).setMarginRight(48);
+    const brand = body.appendParagraph("LANDIMKEREI DIEZINGER");
+    brand.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    brand.editAsText().setBold(true).setFontSize(16).setForegroundColor("#822045");
+    const heading = body.appendParagraph("Bestellübersicht");
+    heading.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    heading.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    body.appendParagraph("Bestellnummer: " + String(order.customerOrderNumber || "–")).editAsText().setBold(true);
+    const orderedAt = order.timestamp instanceof Date
+      ? Utilities.formatDate(order.timestamp, Session.getScriptTimeZone(), "dd.MM.yyyy HH:mm")
+      : String(order.timestamp || "–");
+    body.appendParagraph("Bestellt am: " + orderedAt);
+    body.appendParagraph("Name: " + String(order.name || "–"));
+    body.appendParagraph("Abholart: " + String(order.pickup || "–"));
+    body.appendParagraph("Wunschtermin: " + String(order.date || "Kein Wunschtermin angegeben"));
+    body.appendParagraph("Artikel").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+    String(order.itemSummary || "–").split(/,\s*(?=\d+x\s)/).filter(function(item) { return item; }).forEach(function(item) {
+      body.appendListItem(item);
+    });
+    body.appendParagraph("Wünsche: " + String(order.note || "Keine Wünsche angegeben"));
+    body.appendParagraph("Preis: " + getOrderPriceText_(order));
+    const disclaimer = body.appendParagraph("Dieses Blatt ist keine Rechnung, sondern eine Zusammenfassung der Bestellung.");
+    disclaimer.editAsText().setBold(true);
+    document.saveAndClose();
+    const pdf = DriveApp.getFileById(documentId).getAs(MimeType.PDF).setName("Bestellübersicht " + safeNumber + ".pdf");
+    const file = getOrderSlipFolder_().createFile(pdf);
+    DriveApp.getFileById(documentId).setTrashed(true);
+    return file;
+  } catch (error) {
+    try {
+      DriveApp.getFileById(documentId).setTrashed(true);
+    } catch (cleanupError) {
+      console.error("Temporäres Bestelldokument konnte nicht gelöscht werden: " + cleanupError.message);
+    }
+    throw error;
+  }
+}
+
+function trashOrderSlipPdf_(fileId) {
+  if (!fileId) return;
+  try {
+    DriveApp.getFileById(fileId).setTrashed(true);
+  } catch (error) {
+    console.warn("Bestell-PDF war bereits gelöscht oder konnte nicht gefunden werden: " + error.message);
+  }
 }
 
 function setupOrderStatusEmailTrigger_(spreadsheet) {
