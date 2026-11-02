@@ -244,9 +244,6 @@ function doPost(e) {
   let payload = {};
   try {
     payload = JSON.parse((e && e.parameter && e.parameter.payload) || "{}");
-    if (payload.action === "lookupOrder") {
-      return createOrderLookupResponse_(lookupOrder_(payload));
-    }
     orderId = String(payload.orderId || "");
     const result = reserveOrder_(payload);
     if (orderId) CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: true, customerOrderNumber: result.customerOrderNumber || "" }), 300);
@@ -273,14 +270,6 @@ function doPost(e) {
     return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (error) {
-    if (payload.action === "lookupOrder") {
-      return createOrderLookupResponse_({
-        type: "orderLookupResult",
-        requestId: String(payload.requestId || ""),
-        ok: false,
-        message: "Bestellung nicht gefunden. Bitte prüfe Bestellnummer und E-Mail-Adresse."
-      });
-    }
     if (orderId) {
       CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: false, message: error.message }), 300);
     }
@@ -449,14 +438,13 @@ function sendCustomerOrderConfirmation_(order) {
   const date = order.date || "Kein Wunschtermin angegeben";
   const contactHtml = (replyTo ? 'Bei Fragen schreib an ' + mailLink(replyTo) + '. ' : "") +
     (contacts.length ? 'Eine Antwort erhältst du persönlich von ' + contacts.map(mailLink).join(" oder ") + "." : "");
-  const statusLookup = "Status abrufen: Auf der Bestellseite ganz nach unten scrollen, „Bestellung abrufen“ anklicken und Bestellnummer sowie E-Mail-Adresse eingeben.";
   const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
     '<body style="margin:0;padding:20px 12px;background:#f5f5f5;font-family:-apple-system,\'Segoe UI\',Helvetica,Arial,sans-serif;font-size:15px;color:#222;line-height:1.5;">' +
     '<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;margin:0 auto;background:#fff;border-top:4px solid #822045;border-radius:6px;">' +
     '<tr><td style="padding:22px 24px;">' +
-    '<div style="font-size:18px;font-weight:bold;color:#822045;">Danke für deine Bestellung</div>' +
-    '<p style="margin:10px 0 16px;">Servus ' + escapeHtml(safeName) + ', wir haben deine Bestellung erhalten.</p>' +
+    '<div style="font-size:18px;font-weight:bold;color:#822045;">Deine Bestellung ist eingegangen</div>' +
+    '<p style="margin:10px 0 16px;">Servus ' + escapeHtml(safeName) + ', danke für deine Bestellung. Wir haben alles erhalten und machen uns bald an die Vorbereitung.</p>' +
     '<div style="display:inline-block;padding:6px 12px;background:#FFE337;color:#822045;border-radius:6px;font-family:\'Courier New\',monospace;font-weight:bold;">' + escapeHtml(safeOrderNumber) + '</div>' +
     '<div style="margin:18px 0 6px;padding-top:14px;border-top:1px solid #eee;font-weight:bold;">' +
     (items.length ? items.map(function(item) { return escapeHtml(item); }).join("<br>") : "–") + '</div>' +
@@ -465,8 +453,7 @@ function sendCustomerOrderConfirmation_(order) {
     row("Wunschtermin", escapeHtml(valueOrDash(date))) +
     row("Status", escapeHtml(ORDER_STATUSES[0])) +
     row("Wünsche", escapeHtml(valueOrDash(order.note))) +
-    '</table><p style="margin:18px 0 0;">Wir melden uns, sobald deine Bestellung zur Abholung bereit ist.</p>' +
-    '<p style="margin:14px 0 0;padding:12px 14px;background:#fff8cc;border-radius:6px;font-size:14px;"><b>Status abrufen:</b> Auf der Bestellseite ganz nach unten scrollen, „Bestellung abrufen“ anklicken und Bestellnummer sowie E-Mail-Adresse eingeben.</p>' +
+    '</table><p style="margin:18px 0 0;">Sobald deine Bestellung abholbereit ist, bekommst du eine Nachricht von uns.</p>' +
     '<p style="margin:18px 0 0;">Viele Grüße<br>Landimkerei Diezinger</p>' +
     '<div style="margin-top:18px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#999;">' +
     'Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf. ' + contactHtml +
@@ -474,7 +461,7 @@ function sendCustomerOrderConfirmation_(order) {
   const text = [
     "Servus " + (order.name || "") + ",",
     "",
-    "vielen Dank für deine Bestellung. Wir haben sie erhalten.",
+    "danke für deine Bestellung. Wir haben alles erhalten und machen uns bald an die Vorbereitung.",
     "",
     "Bestellnummer: " + safeOrderNumber,
     ...items.map(function(item) { return "Bestellte Artikel: " + item; }),
@@ -483,8 +470,7 @@ function sendCustomerOrderConfirmation_(order) {
     "Status: " + ORDER_STATUSES[0],
     "Wünsche: " + valueOrDash(order.note),
     "",
-    "Wir melden uns, sobald deine Bestellung zur Abholung bereit ist.",
-    statusLookup,
+    "Sobald deine Bestellung abholbereit ist, bekommst du eine Nachricht von uns.",
     "",
     "Viele Grüße",
     "Landimkerei Diezinger",
@@ -496,7 +482,7 @@ function sendCustomerOrderConfirmation_(order) {
   MailApp.sendEmail({
     to: order.email,
     name: "Landimkerei Diezinger",
-    subject: "Deine Bestellung " + (order.customerOrderNumber || "") + " – Landimkerei Diezinger",
+    subject: "Deine Bestellung ist eingegangen – " + (order.customerOrderNumber || "") + " – Landimkerei Diezinger",
     body: text,
     htmlBody: html
   });
@@ -513,22 +499,22 @@ function sendCustomerOrderStatusEmail_(order, status) {
     .filter(function(address) { return address; });
   const messages = {
     "In Bearbeitung": {
-      subject: "Wir machen deine Honigbestellung fertig",
-      title: "Wir machen deine Bestellung fertig",
-      html: "Danke dir! Wir machen deine Bestellung gerade fertig. Sobald alles für dich bereitsteht, melden wir uns nochmal.",
-      text: "Danke dir! Wir machen deine Bestellung gerade fertig. Sobald alles für dich bereitsteht, melden wir uns nochmal."
+      subject: "Deine Bestellung wird gerade vorbereitet",
+      title: "Deine Bestellung wird vorbereitet",
+      html: "Wir bereiten deine Bestellung gerade für dich vor. Sobald sie abholbereit ist, bekommst du direkt eine Nachricht von uns. Danke dir für deine Geduld!",
+      text: "Wir bereiten deine Bestellung gerade für dich vor. Sobald sie abholbereit ist, bekommst du direkt eine Nachricht von uns. Danke dir für deine Geduld!"
     },
     "Bereit zur Abholung": {
-      subject: "Deine Bestellung wartet auf dich",
-      title: "Deine Bestellung ist fertig",
-      html: "Deine Bestellung ist fertig und wartet auf dich. Du kannst sie wie vereinbart abholen.",
-      text: "Deine Bestellung ist fertig und wartet auf dich. Du kannst sie wie vereinbart abholen."
+      subject: "Deine Bestellung ist abholbereit",
+      title: "Deine Bestellung ist abholbereit",
+      html: "Deine Bestellung ist jetzt abholbereit. Du kannst sie wie vereinbart abholen. Wir freuen uns auf dich!",
+      text: "Deine Bestellung ist jetzt abholbereit. Du kannst sie wie vereinbart abholen. Wir freuen uns auf dich!"
     },
     "Abgeholt": {
-      subject: "Viel Freude mit deiner Bestellung!",
-      title: "Viel Freude mit deiner Bestellung!",
-      html: "Schön, dass du deine Bestellung abgeholt hast. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten!",
-      text: "Schön, dass du deine Bestellung abgeholt hast. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten!"
+      subject: "Deine Bestellung wurde abgeholt",
+      title: "Deine Bestellung wurde abgeholt",
+      html: "Deine Bestellung wurde als abgeholt vermerkt. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten. Vielen Dank für deine Bestellung!",
+      text: "Deine Bestellung wurde als abgeholt vermerkt. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten. Vielen Dank für deine Bestellung!"
     }
   };
   const message = messages[status];
@@ -1049,60 +1035,3 @@ function generateCustomerOrderNumber_(existingNumbers) {
   return customerOrderNumber;
 }
 
-function lookupOrder_(payload) {
-  const requestId = String(payload.requestId || "");
-  const orderNumber = String(payload.customerOrderNumber || "").trim().toUpperCase();
-  const email = String(payload.email || "").trim().toLowerCase();
-  const response = {
-    type: "orderLookupResult",
-    requestId: requestId,
-    ok: false,
-    message: "Bestellung nicht gefunden. Bitte prüfe Bestellnummer und E-Mail-Adresse."
-  };
-  if (!/^[A-Za-z0-9_-]{20,80}$/.test(requestId) || !/^H-[A-F0-9]{10}$/.test(orderNumber) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return response;
-
-  const emailHash = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, email)).replace(/=+$/g, "");
-  const cache = CacheService.getScriptCache();
-  const rateLimitKey = "order_lookup_" + emailHash;
-  const attempts = Number(cache.get(rateLimitKey) || 0);
-  if (attempts >= 5) {
-    response.message = "Zu viele Versuche. Bitte warte einige Minuten und versuche es erneut.";
-    return response;
-  }
-  cache.put(rateLimitKey, String(attempts + 1), 300);
-
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ORDERS_SHEET);
-  if (!sheet || sheet.getLastRow() < 2) return response;
-  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
-  const row = rows.find(function(item) {
-    return String(item[8] || "").trim().toUpperCase() === orderNumber && String(item[3] || "").trim().toLowerCase() === email;
-  });
-  if (!row) return response;
-
-  return {
-    type: "orderLookupResult",
-    requestId: requestId,
-    ok: true,
-    order: {
-      customerOrderNumber: String(row[8]),
-      name: String(row[2] || ""),
-      email: String(row[3] || ""),
-      items: String(row[4] || ""),
-      pickup: String(row[5] || ""),
-      date: String(row[6] || ""),
-      note: String(row[7] || ""),
-      status: String(row[9] || ORDER_STATUSES[0])
-    }
-  };
-}
-
-function createOrderLookupResponse_(result) {
-  const message = JSON.stringify(result)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029");
-  return HtmlService.createHtmlOutput("<!doctype html><script>window.top.postMessage(" + message + ", '*');</script>")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
