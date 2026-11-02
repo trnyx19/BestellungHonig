@@ -6,7 +6,7 @@ const ORDER_NOTIFICATION_EMAIL = "lukasdiezinger3@gmail.com";
 const ORDER_SENDER_NAME = "Neue Bestellung";
 const ORDER_EMAIL_SUBJECT = "[BESTELLUNG] Neue Bestellung";
 const MAX_ORDER_QUANTITIES = { arb3d: 3, koe3d: 3, wei3d: 3, volk3d: 5, weivol3d: 5 };
-const ORDER_STATUSES = ["Eingegangen", "In Bearbeitung", "Bereit zur Abholung", "Abgeholt"];
+const ORDER_STATUSES = ["Eingegangen", "In Bearbeitung", "Verzögert", "Bereit zur Abholung", "Abgeholt"];
 const PRODUCT_AVAILABILITY_STATUSES = ["Normal", "Schnell zugreifen", "Nicht verfügbar"];
 const UNAVAILABLE_REASONS = [
   "Nicht verfügbar",
@@ -173,14 +173,14 @@ function setup() {
   let orders = spreadsheet.getSheetByName(ORDERS_SHEET);
   if (!orders) orders = spreadsheet.insertSheet(ORDERS_SHEET);
   if (orders.getLastRow() === 0) {
-    orders.getRange(1, 1, 1, 10).setValues([[
-      "Bestell-ID", "Zeitpunkt", "Name", "E-Mail", "Artikel", "Abholung", "Wunschtermin", "Wünsche", "Bestellnummer", "Status"
+    orders.getRange(1, 1, 1, 12).setValues([[
+      "Bestell-ID", "Zeitpunkt", "Name", "E-Mail", "Artikel", "Abholung", "Wunschtermin", "Wünsche", "Bestellnummer", "Status", "Betrag (€)", "Preishinweis"
     ]]);
     orders.setFrozenRows(1);
   }
   setupOrderTracking_(orders);
   setupOrderStatusEmailTrigger_(spreadsheet);
-  orders.autoResizeColumns(1, 10);
+  orders.autoResizeColumns(1, 12);
 }
 
 function doGet(e) {
@@ -376,6 +376,7 @@ function sendNewOrderEmail_(order) {
     row("E-Mail", emailValue) +
     row("Abholung", escapeHtml(valueOrDash(order.pickup))) +
     row("Wunschtermin", escapeHtml(valueOrDash(order.date))) +
+    row("Preis", escapeHtml(getOrderPriceText_(order))) +
     row("Wünsche", escapeHtml(valueOrDash(order.note))) +
     '</table><div style="margin-top:18px;font-size:11px;color:#aaa;">ID: ' + escapeHtml(valueOrDash(order.orderId)) +
     '</div></td></tr></table></body></html>';
@@ -389,6 +390,7 @@ function sendNewOrderEmail_(order) {
     "E-Mail:        " + valueOrDash(order.email),
     "Abholung:      " + valueOrDash(order.pickup),
     "Wunschtermin:  " + valueOrDash(order.date),
+    "Preis:         " + getOrderPriceText_(order),
     "Wünsche:       " + valueOrDash(order.note),
     "",
     "ID: " + valueOrDash(order.orderId)
@@ -451,6 +453,7 @@ function sendCustomerOrderConfirmation_(order) {
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;font-size:14px;">' +
     row("Abholung", escapeHtml(valueOrDash(order.pickup))) +
     row("Wunschtermin", escapeHtml(valueOrDash(date))) +
+    row("Preis", escapeHtml(getOrderPriceText_(order))) +
     row("Status", escapeHtml(ORDER_STATUSES[0])) +
     row("Wünsche", escapeHtml(valueOrDash(order.note))) +
     '</table><p style="margin:18px 0 0;">Sobald deine Bestellung abholbereit ist, bekommst du eine Nachricht von uns.</p>' +
@@ -467,6 +470,7 @@ function sendCustomerOrderConfirmation_(order) {
     ...items.map(function(item) { return "Bestellte Artikel: " + item; }),
     "Abholung: " + valueOrDash(order.pickup),
     "Wunschtermin: " + date,
+    "Preis: " + getOrderPriceText_(order),
     "Status: " + ORDER_STATUSES[0],
     "Wünsche: " + valueOrDash(order.note),
     "",
@@ -504,6 +508,12 @@ function sendCustomerOrderStatusEmail_(order, status) {
       html: "Wir bereiten deine Bestellung gerade für dich vor. Sobald sie abholbereit ist, bekommst du direkt eine Nachricht von uns. Danke dir für deine Geduld!",
       text: "Wir bereiten deine Bestellung gerade für dich vor. Sobald sie abholbereit ist, bekommst du direkt eine Nachricht von uns. Danke dir für deine Geduld!"
     },
+    "Verzögert": {
+      subject: "Deine Bestellung ist noch nicht abholbereit",
+      title: "Deine Bestellung ist noch nicht abholbereit",
+      html: "Es tut uns leid, aber deine Bestellung ist noch nicht bereit und verzögert sich etwas. Leider können wir dir momentan nicht sagen, wie lange es noch dauert. Wir geben unser Bestes, damit du sie so schnell wie möglich abholen kannst, und melden uns direkt bei dir, sobald sie bereit ist. Danke dir für deine Geduld und dein Verständnis!",
+      text: "Es tut uns leid, aber deine Bestellung ist noch nicht bereit und verzögert sich etwas. Leider können wir dir momentan nicht sagen, wie lange es noch dauert. Wir geben unser Bestes, damit du sie so schnell wie möglich abholen kannst, und melden uns direkt bei dir, sobald sie bereit ist. Danke dir für deine Geduld und dein Verständnis!"
+    },
     "Bereit zur Abholung": {
       subject: "Deine Bestellung ist abholbereit",
       title: "Deine Bestellung ist abholbereit",
@@ -513,8 +523,8 @@ function sendCustomerOrderStatusEmail_(order, status) {
     "Abgeholt": {
       subject: "Deine Bestellung wurde abgeholt",
       title: "Deine Bestellung wurde abgeholt",
-      html: "Deine Bestellung wurde als abgeholt vermerkt. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten. Vielen Dank für deine Bestellung!",
-      text: "Deine Bestellung wurde als abgeholt vermerkt. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten. Vielen Dank für deine Bestellung!"
+      html: "Deine Bestellung wurde als abgeholt vermerkt. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten. Vielen Dank für deine Bestellung! Wir freuen uns, wenn du bald wieder bei uns vorbeischaust und etwas bestellst.",
+      text: "Deine Bestellung wurde als abgeholt vermerkt. Wir wünschen dir viel Freude mit dem Honig und den anderen Produkten. Vielen Dank für deine Bestellung! Wir freuen uns, wenn du bald wieder bei uns vorbeischaust und etwas bestellst."
     }
   };
   const message = messages[status];
@@ -547,6 +557,9 @@ function sendCustomerOrderStatusEmail_(order, status) {
     replyTo ? "Bei Fragen schreib an " + replyTo + "." : "",
     contacts.length ? "Eine Antwort erhältst du persönlich von " + contacts.join(" oder ") + "." : ""
   ].filter(Boolean).join(" ");
+  const privacyNotice = status === "Abgeholt"
+    ? "Deine persönlichen Angaben wie Name, E-Mail-Adresse, Abholwunsch und Wünsche wurden aus unserer Bestellübersicht gelöscht."
+    : "";
   const itemList = items.length ? items.map(function(item) { return escapeHtml(item); }).join("<br>") : "–";
   const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
@@ -560,10 +573,12 @@ function sendCustomerOrderStatusEmail_(order, status) {
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;font-size:14px;">' +
     row("Abholung", escapeHtml(valueOrDash(order.pickup))) +
     row("Wunschtermin", escapeHtml(valueOrDash(order.date))) +
+    row("Preis", escapeHtml(getOrderPriceText_(order))) +
     row("Status", escapeHtml(status)) +
     '</table><p style="margin:18px 0 0;">Viele Grüße<br>Landimkerei Diezinger</p>' +
     '<div style="margin-top:18px;padding-top:12px;border-top:1px solid #eee;font-size:12px;color:#999;">' +
     'Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf. ' + contactHtml +
+    (privacyNotice ? '<div style="margin-top:8px;">' + escapeHtml(privacyNotice) + '</div>' : "") +
     '</div></td></tr></table></body></html>';
   const text = [
     "Hallo " + (order.name || "") + ",",
@@ -574,13 +589,15 @@ function sendCustomerOrderStatusEmail_(order, status) {
     ...items.map(function(item) { return "Bestellte Artikel: " + item; }),
     "Abholung: " + valueOrDash(order.pickup),
     "Wunschtermin: " + valueOrDash(order.date),
+    "Preis: " + getOrderPriceText_(order),
     "Status: " + status,
     "",
     "Viele Grüße",
     "Landimkerei Diezinger",
     "",
     "Diese E-Mail wurde automatisch erstellt, bitte antworte nicht darauf.",
-    contactText
+    contactText,
+    privacyNotice
   ].join("\n");
   MailApp.sendEmail({
     to: order.email,
@@ -608,7 +625,9 @@ function EmailStatusSend() {
     customerOrderNumber: "TEST-STATUS",
     pickup: "Persönlich abholen (Mo-Fr 17-19 Uhr, Sa 10-19 Uhr)",
     date: "Kein Wunschtermin angegeben",
-    note: ""
+    note: "",
+    totalPrice: 3,
+    priceNote: ""
   };
   sendCustomerOrderConfirmation_(testOrder);
   ORDER_STATUSES.slice(1).forEach(function(status) {
@@ -705,6 +724,22 @@ function readPrices_() {
   }, {});
 }
 
+function formatEuro_(amount) {
+  return Number(amount).toFixed(2).replace(".", ",") + " €";
+}
+
+function getOrderPriceText_(order) {
+  const amount = Number(order.totalPrice);
+  const hasAmount = order.totalPrice !== "" && order.totalPrice != null && Number.isFinite(amount);
+  const priceNote = String(order.priceNote || "").trim();
+  if (priceNote) {
+    return hasAmount && amount > 0
+      ? "Zwischensumme: " + formatEuro_(amount) + ". " + priceNote
+      : priceNote;
+  }
+  return hasAmount ? "Gesamtpreis: " + formatEuro_(amount) : "Preis in dieser Bestellung nicht hinterlegt.";
+}
+
 function initializeProductPrices_(sheet) {
   const properties = PropertiesService.getScriptProperties();
   if (properties.getProperty("PRODUCT_PRICES_INITIALIZED") === "true") return;
@@ -797,16 +832,24 @@ function onOrderStatusEdit(e) {
   const previousStatus = String(e.oldValue || "").trim();
   if (!status || status === previousStatus || status === ORDER_STATUSES[0] || ORDER_STATUSES.indexOf(status) === -1) return;
 
-  const row = sheet.getRange(range.getRow(), 1, 1, 10).getValues()[0];
+  const row = sheet.getRange(range.getRow(), 1, 1, 12).getValues()[0];
   if (String(row[9] || "").trim() !== status) return;
-  sendCustomerOrderStatusEmail_({
+  const order = {
     name: String(row[2] || ""),
     email: String(row[3] || ""),
     itemSummary: String(row[4] || ""),
     pickup: String(row[5] || ""),
     date: String(row[6] || ""),
-    customerOrderNumber: String(row[8] || "")
-  }, status);
+    customerOrderNumber: String(row[8] || ""),
+    totalPrice: row[10],
+    priceNote: String(row[11] || "")
+  };
+  sendCustomerOrderStatusEmail_(order, status);
+  if (status === "Abgeholt") {
+    sheet.getRange(range.getRow(), 1).clearContent();
+    sheet.getRange(range.getRow(), 3, 1, 2).clearContent();
+    sheet.getRange(range.getRow(), 6, 1, 4).clearContent();
+  }
 }
 
 function setupProductReasonDropdowns_(sheet) {
@@ -875,6 +918,7 @@ function reserveOrder_(payload) {
     const name = String(payload.name || "").trim();
     const email = String(payload.email || "").trim();
     const requested = Array.isArray(payload.items) ? payload.items : [];
+    const pickup = String(payload.pickup || "");
     if (String(payload.honeypot || "").trim()) throw new Error("Die Bestellung konnte nicht geprüft werden.");
     if (!orderId || !name || !email || !requested.length) {
       throw new Error("Die Bestellung enthält nicht alle erforderlichen Angaben.");
@@ -917,6 +961,7 @@ function reserveOrder_(payload) {
       return result;
     }, {});
 
+    const prices = readPrices_();
     const purchases = Object.keys(totals).map(function(id) {
       const quantity = totals[id];
       const product = rowById[id];
@@ -927,8 +972,24 @@ function reserveOrder_(payload) {
       if (quantity > product.stock) {
         throw new Error("Zu viel ausgewählt: " + product.name + " (" + product.size + "). Du hast " + quantity + " gewählt, verfügbar sind " + product.stock + ". Bitte reduziere die Menge.");
       }
-      return { id: id, quantity: quantity, product: product };
+      return { id: id, quantity: quantity, product: product, unitPrice: prices[id] };
     });
+
+    let amountCents = pickup.indexOf("Abholschrank") !== -1 ? 100 : 0;
+    const priceNotes = [];
+    purchases.forEach(function(item) {
+      if (item.id === "wh1") {
+        priceNotes.push(item.unitPrice == null
+          ? "Wabenhonigpreis fehlt im Bestandssheet."
+          : "Wabenhonig wird nach Gewicht berechnet (" + formatEuro_(item.unitPrice) + " pro 100 g). Der genaue Preis steht erst mit dem Gewicht fest.");
+      } else if (item.unitPrice == null) {
+        priceNotes.push("Für " + item.product.name + " fehlt ein Preis im Bestandssheet.");
+      } else {
+        amountCents += Math.round(item.unitPrice * 100) * item.quantity;
+      }
+    });
+    const totalPrice = amountCents / 100;
+    const priceNote = priceNotes.join(" ");
 
     const nextRows = rows.map(function(row) { return row.slice(); });
     purchases.forEach(function(item) {
@@ -959,11 +1020,13 @@ function reserveOrder_(payload) {
         name,
         email,
         itemSummary,
-        String(payload.pickup || ""),
+        pickup,
         String(payload.date || ""),
         String(payload.note || ""),
         customerOrderNumber,
-        ORDER_STATUSES[0]
+        ORDER_STATUSES[0],
+        totalPrice,
+        priceNote
       ]);
       SpreadsheetApp.flush();
     } catch (error) {
@@ -986,9 +1049,11 @@ function reserveOrder_(payload) {
         email: email,
         itemSummary: itemSummary,
         customerOrderNumber: customerOrderNumber,
-        pickup: String(payload.pickup || ""),
+        pickup: pickup,
         date: String(payload.date || ""),
-        note: String(payload.note || "")
+        note: String(payload.note || ""),
+        totalPrice: totalPrice,
+        priceNote: priceNote
       }
     };
   } finally {
@@ -997,8 +1062,9 @@ function reserveOrder_(payload) {
 }
 
 function setupOrderTracking_(orders) {
-  if (orders.getMaxColumns() < 10) orders.insertColumnsAfter(orders.getMaxColumns(), 10 - orders.getMaxColumns());
-  orders.getRange(1, 9, 1, 2).setValues([["Bestellnummer", "Status"]]);
+  if (orders.getMaxColumns() < 12) orders.insertColumnsAfter(orders.getMaxColumns(), 12 - orders.getMaxColumns());
+  orders.getRange(1, 9, 1, 4).setValues([["Bestellnummer", "Status", "Betrag (€)", "Preishinweis"]]);
+  orders.getRange(2, 11, Math.max(1, orders.getMaxRows() - 1), 1).setNumberFormat('0.00 "€"');
   const lastRow = orders.getLastRow();
   const statusRule = SpreadsheetApp.newDataValidation().requireValueInList(ORDER_STATUSES, true).build();
   if (lastRow < 2) return;
