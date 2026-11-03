@@ -1,5 +1,5 @@
 const LOW_STOCK_THRESHOLD = 6;
-const LOW_STOCK_TELEGRAM_THRESHOLD = 3;
+const UNPICKED_ORDER_RETENTION_DAYS = 90;
 const INVENTORY_SHEET = "Bestand";
 const ORDERS_SHEET = "Bestellungen";
 const ORDER_NOTIFICATION_EMAIL = "lukasdiezinger3@gmail.com";
@@ -181,6 +181,7 @@ function setup() {
   setupOrderTracking_(orders);
   setupOrderArchive_(spreadsheet);
   setupOrderStatusEmailTrigger_(spreadsheet);
+  setupExpiredOrderCleanupTrigger_();
   orders.autoResizeColumns(1, 13);
 }
 
@@ -250,22 +251,14 @@ function doPost(e) {
     if (orderId) CacheService.getScriptCache().put("order_" + orderId, JSON.stringify({ accepted: true, customerOrderNumber: result.customerOrderNumber || "" }), 300);
     if (!result.duplicate) {
       try {
-        sendNewOrderTelegram_(result.orderDetails);
-      } catch (telegramError) {
-        console.error("Telegram-Bestellmeldung konnte nicht erstellt werden: " + telegramError.message);
-      }
-      sendLowStockAlerts_(result.lowStockAlerts || []);
-      try {
         sendNewOrderEmail_(result.orderDetails);
       } catch (emailError) {
         console.error("Bestell-E-Mail konnte nicht gesendet werden: " + emailError.message);
-        sendTelegramMessage_("Bestell-E-Mail konnte nicht gesendet werden. Bestell-ID: " + orderId + ". Fehler: " + emailError.message);
       }
       try {
         sendCustomerOrderConfirmation_(result.orderDetails);
       } catch (customerEmailError) {
         console.error("Kunden-Bestätigung konnte nicht gesendet werden: " + customerEmailError.message);
-        sendTelegramMessage_("Kunden-Bestätigung konnte nicht gesendet werden. Bestellnummer: " + result.customerOrderNumber + ". Fehler: " + customerEmailError.message);
       }
     }
     return HtmlService.createHtmlOutput("Bestellung verarbeitet.")
@@ -277,65 +270,6 @@ function doPost(e) {
     return HtmlService.createHtmlOutput("Bestellung konnte nicht verarbeitet werden.")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
-}
-
-function logTelegramChatId() {
-  const token = PropertiesService.getScriptProperties().getProperty("TELEGRAM_BOT_TOKEN");
-  if (!token) throw new Error("Lege zuerst TELEGRAM_BOT_TOKEN in den Script-Eigenschaften an.");
-
-  const response = UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/getUpdates", {
-    muteHttpExceptions: true
-  });
-  const result = JSON.parse(response.getContentText());
-  if (!result.ok) throw new Error("Telegram konnte Updates nicht lesen. Prüfe den Bot-Token.");
-
-  const chats = {};
-  result.result.forEach(function(update) {
-    const message = update.message || update.edited_message || update.channel_post;
-    if (message && message.chat) {
-      chats[String(message.chat.id)] = message.chat.title || message.chat.username || message.chat.first_name || "Chat";
-    }
-  });
-  const ids = Object.keys(chats);
-  if (!ids.length) {
-    console.log("Keine Chats gefunden. Sende dem Bot zuerst /start und führe die Funktion erneut aus.");
-    return;
-  }
-  ids.forEach(function(id) { console.log(chats[id] + ": " + id); });
-}
-
-function sendCurrentLowStockAlerts() {
-  const inventory = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INVENTORY_SHEET);
-  if (!inventory || inventory.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
-  const rows = inventory.getRange(2, 1, inventory.getLastRow() - 1, 4).getValues();
-  const alerts = rows.map(function(row) {
-    return { id: String(row[0]), name: String(row[1]), size: String(row[2]), count: Number(row[3]) };
-  }).filter(function(item) {
-    return item.id && item.id !== "HNG" && item.id !== "KZN" && item.id !== "K3D" && Number.isInteger(item.count) && item.count >= 0 && item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
-  });
-  sendLowStockAlerts_(alerts);
-  return alerts.length;
-}
-
-function sendLowStockAlerts_(alerts) {
-  if (!alerts.length) return;
-  alerts.forEach(function(item) {
-    const message = "Lagerwarnung: " + item.name + " (" + item.size + ") hat nur noch " + item.count + ".";
-    sendTelegramMessage_(message);
-  });
-}
-
-function sendNewOrderTelegram_(order) {
-  if (!order) return;
-  const lines = [
-    "Neue Honigbestellung",
-    "Bestellnummer: " + order.customerOrderNumber,
-    "Name: " + order.name,
-    "Artikel: " + order.itemSummary,
-    "Abholung: " + (order.pickup || "Keine Angabe")
-  ];
-  if (order.date) lines.push("Wunschtermin: " + order.date);
-  sendTelegramMessage_(lines.join("\n"));
 }
 
 function sendNewOrderEmail_(order) {
@@ -559,7 +493,7 @@ function sendCustomerOrderStatusEmail_(order, status) {
     contacts.length ? "Eine Antwort erhältst du persönlich von " + contacts.join(" oder ") + "." : ""
   ].filter(Boolean).join(" ");
   const privacyNotice = status === "Abgeholt"
-    ? "Deine persönlichen Angaben wie Name, E-Mail-Adresse, Abholwunsch und Wünsche wurden aus unserer Bestellübersicht gelöscht."
+    ? "Deine angegebene Abholart und deine Wünsche bleiben zusammen mit der Bestellung zu Dokumentationszwecken im Bestellarchiv gespeichert. Dein Name und deine E-Mail-Adresse werden aus der laufenden Bestellübersicht entfernt."
     : "";
   const itemList = items.length ? items.map(function(item) { return escapeHtml(item); }).join("<br>") : "–";
   const html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">' +
@@ -653,37 +587,8 @@ function testOrderNotifications() {
     errors.push("E-Mail: " + error.message);
   }
 
-  if (!sendTelegramMessage_("TEST - Bestellbenachrichtigung. Es wurde keine Bestellung angelegt. Test-ID: " + testId)) {
-    errors.push("Telegram: Senden fehlgeschlagen. Prüfe TELEGRAM_BOT_TOKEN und TELEGRAM_CHAT_ID in den Script-Eigenschaften.");
-  }
-
   if (errors.length) throw new Error(errors.join("\n"));
-  console.log("Testmail und Telegram-Testnachricht wurden gesendet. Test-ID: " + testId);
-}
-
-function sendTelegramMessage_(message) {
-  const properties = PropertiesService.getScriptProperties();
-  const token = properties.getProperty("TELEGRAM_BOT_TOKEN");
-  const chatId = properties.getProperty("TELEGRAM_CHAT_ID");
-  if (!token || !chatId) {
-    console.warn("Telegram-Nachricht übersprungen: TELEGRAM_BOT_TOKEN oder TELEGRAM_CHAT_ID fehlt.");
-    return false;
-  }
-
-  try {
-    const response = UrlFetchApp.fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify({ chat_id: chatId, text: message }),
-      muteHttpExceptions: true
-    });
-    const result = JSON.parse(response.getContentText());
-    if (!result.ok) throw new Error("Telegram hat die Nachricht abgelehnt.");
-    return true;
-  } catch (error) {
-    console.error("Telegram-Nachricht konnte nicht gesendet werden: " + error.message);
-    return false;
-  }
+  console.log("Testmail wurde gesendet. Test-ID: " + testId);
 }
 
 function readInventory_() {
@@ -843,6 +748,7 @@ function onOrderStatusEdit(e) {
     itemSummary: String(row[4] || ""),
     pickup: String(row[5] || ""),
     date: String(row[6] || ""),
+    note: String(row[7] || ""),
     customerOrderNumber: String(row[8] || ""),
     totalPrice: row[10],
     priceNote: String(row[11] || ""),
@@ -954,8 +860,7 @@ function reserveOrder_(payload) {
       customerOrderNumber: String(previous[8] || ""),
       stock: readInventory_(),
       unavailable: readUnavailable_(),
-      lowStockThreshold: LOW_STOCK_THRESHOLD,
-      lowStockAlerts: []
+      lowStockThreshold: LOW_STOCK_THRESHOLD
     };
 
     const dataRange = inventory.getRange(2, 1, inventory.getLastRow() - 1, 4);
@@ -1015,16 +920,6 @@ function reserveOrder_(payload) {
       const index = item.product.row - 2;
       nextRows[index][3] = item.product.stock - item.quantity;
     });
-    const lowStockAlerts = purchases.map(function(item) {
-      return {
-        name: item.product.name,
-        size: item.product.size,
-        count: item.product.stock - item.quantity
-      };
-    }).filter(function(item) {
-      return item.count <= LOW_STOCK_TELEGRAM_THRESHOLD;
-    });
-
     const itemSummary = purchases.map(function(item) {
       return item.quantity + "x " + item.product.name + " (" + item.product.size + ")";
     }).join(", ");
@@ -1060,7 +955,6 @@ function reserveOrder_(payload) {
       customerOrderNumber: customerOrderNumber,
       unavailable: readUnavailable_(),
       lowStockThreshold: LOW_STOCK_THRESHOLD,
-      lowStockAlerts: lowStockAlerts,
       orderDetails: {
         orderId: orderId,
         timestamp: createdAt,
@@ -1212,6 +1106,7 @@ function repairOrderSlipLinks() {
   if (!orders) throw new Error("Das Bestellblatt ist nicht eingerichtet. Führe zuerst setup() aus.");
   setupOrderTracking_(orders);
   setupOrderStatusEmailTrigger_(spreadsheet);
+  setupExpiredOrderCleanupTrigger_();
   getOrderSlipFolder_();
 
   const authorizationDocument = DocumentApp.create("Berechtigungsprüfung Bestellzettel");
@@ -1268,6 +1163,35 @@ function setupOrderStatusEmailTrigger_(spreadsheet) {
   if (!triggerExists) {
     ScriptApp.newTrigger("onOrderStatusEdit").forSpreadsheet(spreadsheet).onEdit().create();
   }
+}
+
+function setupExpiredOrderCleanupTrigger_() {
+  const triggerExists = ScriptApp.getProjectTriggers().some(function(trigger) {
+    return trigger.getHandlerFunction() === "deleteExpiredUncollectedOrders";
+  });
+  if (!triggerExists) {
+    ScriptApp.newTrigger("deleteExpiredUncollectedOrders").timeBased().everyDays(1).atHour(3).create();
+  }
+}
+
+function deleteExpiredUncollectedOrders() {
+  const orders = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ORDERS_SHEET);
+  if (!orders || orders.getLastRow() < 2) return 0;
+
+  const rowCount = orders.getLastRow() - 1;
+  const rows = orders.getRange(2, 1, rowCount, 14).getValues();
+  const cutoff = Date.now() - UNPICKED_ORDER_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  let deletedCount = 0;
+  for (let index = rows.length - 1; index >= 0; index--) {
+    const row = rows[index];
+    const orderDate = row[1] instanceof Date ? row[1] : new Date(row[1]);
+    if (String(row[9] || "").trim() === "Abgeholt" || isNaN(orderDate.getTime()) || orderDate.getTime() >= cutoff) continue;
+    trashOrderSlipPdf_(String(row[13] || ""));
+    orders.deleteRow(index + 2);
+    deletedCount++;
+  }
+  console.log(deletedCount + " nicht abgeholte Bestellung(en) nach Ablauf der Aufbewahrungsfrist gelöscht.");
+  return deletedCount;
 }
 
 function generateCustomerOrderNumber_(existingNumbers) {
