@@ -595,11 +595,14 @@ function readInventory_() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INVENTORY_SHEET);
   if (!sheet || sheet.getLastRow() < 2) throw new Error("Das Bestandsblatt ist nicht eingerichtet.");
   const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
-  return rows.reduce(function(stock, row) {
+  const stock = rows.reduce(function(stock, row) {
     const id = String(row[0]);
     if (id && id !== "HNG" && id !== "KZN" && id !== "K3D") stock[id] = Number(row[3]);
     return stock;
   }, {});
+  stock.volk3d = Math.min(Math.floor(stock.arb3d / 4), stock.koe3d);
+  stock.weivol3d = Math.min(Math.floor(stock.wei3d / 4), stock.koe3d);
+  return stock;
 }
 
 function readProductSizes_() {
@@ -874,6 +877,17 @@ function reserveOrder_(payload) {
       if (!Number.isInteger(stock) || stock < 0) throw new Error("Im Bestandsblatt steht eine ungültige Stückzahl.");
       rowById[id] = { row: index + 2, name: String(row[1]), size: String(row[2]), stock: stock, unavailable: normalizeProductAvailability_(unavailableRows[index][0]) === "Nicht verfügbar" };
     });
+    const stockById = Object.keys(rowById).reduce(function(stock, id) {
+      stock[id] = rowById[id].stock;
+      return stock;
+    }, {});
+    const volkCounts = {
+      volk3d: Math.min(Math.floor(stockById.arb3d / 4), stockById.koe3d),
+      weivol3d: Math.min(Math.floor(stockById.wei3d / 4), stockById.koe3d)
+    };
+    Object.keys(volkCounts).forEach(function(id) {
+      if (rowById[id]) rowById[id].stock = volkCounts[id];
+    });
 
     const totals = requested.reduce(function(result, item) {
       const id = String(item.id || "");
@@ -915,10 +929,23 @@ function reserveOrder_(payload) {
     const totalPrice = amountCents / 100;
     const priceNote = priceNotes.join(" ");
 
+    const inventoryUsage = Object.keys(totals).reduce(function(usage, id) {
+      if (id !== "volk3d" && id !== "weivol3d") usage[id] = (usage[id] || 0) + totals[id];
+      return usage;
+    }, {});
+    inventoryUsage.arb3d = (inventoryUsage.arb3d || 0) + 4 * (totals.volk3d || 0);
+    inventoryUsage.koe3d = (inventoryUsage.koe3d || 0) + (totals.volk3d || 0) + (totals.weivol3d || 0);
+    inventoryUsage.wei3d = (inventoryUsage.wei3d || 0) + 4 * (totals.weivol3d || 0);
+    Object.keys(inventoryUsage).forEach(function(id) {
+      const product = rowById[id];
+      if (!product || product.unavailable || inventoryUsage[id] > product.stock) {
+        throw new Error("Der Bestand der Einzelteile reicht für die ausgewählten Bienchenvölker nicht aus.");
+      }
+    });
     const nextRows = rows.map(function(row) { return row.slice(); });
-    purchases.forEach(function(item) {
-      const index = item.product.row - 2;
-      nextRows[index][3] = item.product.stock - item.quantity;
+    Object.keys(inventoryUsage).forEach(function(id) {
+      const index = rowById[id].row - 2;
+      nextRows[index][3] = rowById[id].stock - inventoryUsage[id];
     });
     const itemSummary = purchases.map(function(item) {
       return item.quantity + "x " + item.product.name + " (" + item.product.size + ")";
